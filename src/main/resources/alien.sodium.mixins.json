@@ -1,0 +1,15 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "dev.luminous.asm.mixins.sodium",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "SodiumBlockRendererMixin",
+    "SodiumBlockRenderContextMixin",
+    "SodiumFluidRendererImplMixin",
+    "SodiumRenderSectionManagerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
