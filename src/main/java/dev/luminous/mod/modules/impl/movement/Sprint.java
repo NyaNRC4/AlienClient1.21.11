@@ -81,13 +81,32 @@ public class Sprint extends Module {
     @EventListener
     public void onMove(TickMovementEvent event) {
         if (BaritoneUtil.isPathing()) return;
+        if (mc.player == null) return;
         if (inWater()) {
             return;
         }
         if (mode.getValue() == Mode.PressKey) {
             mc.options.sprintKey.setPressed(true);
-        } else {
-            mc.player.setSprinting(shouldSprint());
+            return;
+        }
+        if (pause) {
+            if (mc.player.isSprinting()) mc.player.setSprinting(false);
+            return;
+        }
+        if (!mc.player.isSprinting() && shouldSprint()) {
+            mc.player.setSprinting(true);
+        }
+    }
+
+    @EventListener
+    public void onMoved(MovedEvent event) {
+        if (BaritoneUtil.isPathing()) return;
+        if (mc.player == null) return;
+        if (inWater()) {
+            return;
+        }
+        if (mode.getValue() != Mode.PressKey && mc.player.isSprinting() && !shouldSprint()) {
+            mc.player.setSprinting(false);
         }
     }
 
@@ -123,10 +142,13 @@ public class Sprint extends Module {
                             && (!mc.player.horizontalCollision || mc.player.collidedSoftly);
                 }
                 case Rotation -> {
+                    boolean collideOk = !mc.player.horizontalCollision || mc.player.collidedSoftly;
+                    boolean groundOk = mc.player.isOnGround() || mc.player.isSprinting();
                     if (AntiCheat.INSTANCE.movementSync()) {
-                        return Sprint.mc.player.forwardSpeed > 0.0f;
+                        return Sprint.mc.player.forwardSpeed > 0.0f && collideOk && groundOk;
                     } else {
-                        return HoleSnap.INSTANCE.isOn() || MathHelper.angleBetween(getSprintYaw(mc.player.getYaw()), Alien.ROTATION.rotationYaw) < 40;
+                        return (HoleSnap.INSTANCE.isOn() || MathHelper.angleBetween(getSprintYaw(mc.player.getYaw()), Alien.ROTATION.rotationYaw) < 40)
+                                && collideOk && groundOk;
                     }
                 }
                 case Rage -> {
@@ -150,7 +172,7 @@ public class Sprint extends Module {
                 && (!mc.player.isUsingItem() || !usingPause.getValue())
                 && !mc.player.isInFluid()
                 && Freecam.INSTANCE.isOff()
-                && (!mc.player.hasStatusEffect(StatusEffects.BLINDNESS)) || !blindnessPause.getValue()) {
+                && (!mc.player.hasStatusEffect(StatusEffects.BLINDNESS) || !blindnessPause.getValue())) {
             if (mode.is(Mode.Rotation) && !event.isModified()) {
                 event.setYaw(getSprintYaw(mc.player.getYaw()));
             }
