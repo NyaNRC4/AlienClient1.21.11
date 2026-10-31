@@ -1,6 +1,5 @@
 package dev.luminous.mod.modules.impl.movement;
 
-import com.mojang.blaze3d.opengl.GlStateManager;
 import dev.luminous.Alien;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.KeyboardInputEvent;
@@ -19,11 +18,8 @@ import dev.luminous.mod.modules.settings.impl.BooleanSetting;
 import dev.luminous.mod.modules.settings.impl.ColorSetting;
 import dev.luminous.mod.modules.settings.impl.SliderSetting;
 import java.awt.Color;
-import net.minecraft.client.render.BufferBuilder;
-import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.Tessellator;
+import net.minecraft.client.render.*;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import net.minecraft.client.render.VertexFormats;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket;
 import net.minecraft.util.math.BlockPos;
@@ -31,7 +27,6 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
 import org.joml.Matrix4f;
-import org.lwjgl.opengl.GL11;
 
 public class HoleSnap
 extends Module {
@@ -90,6 +85,7 @@ extends Module {
 
         ImmediateDrawUtil.drawWorld(bufferBuilder);
     }
+
 
     private static Vec2f getRotationFromVec(Vec3d vec) {
         double d = vec.x;
@@ -159,7 +155,7 @@ extends Module {
             return;
         }
         if (!AntiCheat.INSTANCE.movementSync()) {
-            this.sendMessage("\u00a74HoleSnap require MovementSync.");
+            this.sendMessage("§4HoleSnap require MovementSync.");
             this.disable();
             return;
         }
@@ -275,7 +271,6 @@ extends Module {
         if (this.targetPos == null || this.holePos == null) {
             return;
         }
-        GL11.glEnable((int)3042);
         Color color = this.color.getValue();
         Vec3d pos = new Vec3d(this.targetPos.x, (double)this.holePos.getY(), this.targetPos.getZ());
         if (this.fade.getValue()) {
@@ -286,7 +281,5 @@ extends Module {
         } else {
             HoleSnap.drawCircle(matrixStack, color, this.circleSize.getValue(), pos, this.segments.getValueInt());
         }
-        GL11.glDisable((int)3042);
     }
 }
-
