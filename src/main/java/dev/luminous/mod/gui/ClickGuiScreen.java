@@ -27,6 +27,8 @@ import net.minecraft.client.render.fog.FogRenderer;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
 
+import static dev.luminous.api.utils.render.ImmediateDrawUtil.flushRender;
+
 public class ClickGuiScreen extends Screen {
     private static ClickGuiScreen INSTANCE = new ClickGuiScreen();
     private final ArrayList<Component> components = new ArrayList();
@@ -74,7 +76,7 @@ public class ClickGuiScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        flushDeferredGui();
+        flushRender();;
         float alpha = (float) ClickGui.getInstance().alphaValue;
         Item.context = context;
         renderingAlpha = alpha;
@@ -87,12 +89,6 @@ public class ClickGuiScreen extends Screen {
             ImmediateDrawUtil.resetColorModulator();
             renderingAlpha = 1.0F;
         }
-    }
-
-    //别管他,写accessWidener里了可以过编译=)
-    private static void flushDeferredGui() {
-        MinecraftClient client = MinecraftClient.getInstance();
-        client.gameRenderer.guiRenderer.render(client.gameRenderer.fogRenderer.getFogBuffer(FogRenderer.FogType.NONE));
     }
 
     private int toContentX(double mouseX, float scale) {
