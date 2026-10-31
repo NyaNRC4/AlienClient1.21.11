@@ -17,6 +17,7 @@ import net.minecraft.client.render.BufferBuilder;
 import net.minecraft.client.gl.Framebuffer;
 import net.minecraft.client.render.ProjectionMatrix2;
 import net.minecraft.client.render.VertexFormats;
+import net.minecraft.client.render.fog.FogRenderer;
 import net.minecraft.client.util.Window;
 import net.minecraft.util.Identifier;
 import org.joml.Matrix4f;
@@ -36,7 +37,11 @@ public final class ImmediateDrawUtil {
 	private static final RenderPipeline POS_COLOR_TRIANGLE_FAN_NO_DEPTH = registerPosColorNoDepth("triangle_fan", VertexFormat.DrawMode.TRIANGLE_FAN);
 	private static final RenderPipeline POS_COLOR_TRIANGLE_STRIP_NO_DEPTH = registerPosColorNoDepth("triangle_strip", VertexFormat.DrawMode.TRIANGLE_STRIP);
 	private static final RenderPipeline POS_TEX_COLOR_QUADS_NO_DEPTH = registerPosTexColorNoDepth("quads", VertexFormat.DrawMode.QUADS);
+	private static final RenderPipeline POS_TEX_COLOR_LINES_NO_DEPTH = registerPosTexColorNoDepth("lines", VertexFormat.DrawMode.LINES);
 	private static final RenderPipeline POS_TEX_COLOR_DEBUG_LINES_NO_DEPTH = registerPosTexColorNoDepth("debug_lines", VertexFormat.DrawMode.DEBUG_LINES);
+	private static final RenderPipeline POS_TEX_COLOR_DEBUG_LINE_STRIP_NO_DEPTH = registerPosTexColorNoDepth("debug_line_strip", VertexFormat.DrawMode.DEBUG_LINE_STRIP);
+	private static final RenderPipeline POS_TEX_COLOR_TRIANGLE_FAN_NO_DEPTH = registerPosTexColorNoDepth("triangle_fan", VertexFormat.DrawMode.TRIANGLE_FAN);
+	private static final RenderPipeline POS_TEX_COLOR_TRIANGLE_STRIP_NO_DEPTH = registerPosTexColorNoDepth("triangle_strip", VertexFormat.DrawMode.TRIANGLE_STRIP);
 
 	private static final RenderPipeline LINES_WIDE_NO_DEPTH = RenderPipelines.register(
 			RenderPipeline.builder(RenderPipelines.RENDERTYPE_LINES_SNIPPET)
@@ -132,7 +137,6 @@ public final class ImmediateDrawUtil {
 			GpuTextureView colorView = RenderSystem.outputColorTextureOverride != null
 					? RenderSystem.outputColorTextureOverride
 					: framebuffer.getColorAttachmentView();
-
 			final GpuTextureView depthView = null;
 
 			try (RenderPass renderPass = RenderSystem.getDevice()
@@ -155,13 +159,19 @@ public final class ImmediateDrawUtil {
 		if (format == VertexFormats.POSITION_COLOR_NORMAL_LINE_WIDTH) {
 			return LINES_WIDE_NO_DEPTH;
 		}
+
 		if (format == VertexFormats.POSITION_TEXTURE_COLOR) {
 			return switch (drawMode) {
 				case QUADS -> POS_TEX_COLOR_QUADS_NO_DEPTH;
+				case LINES -> POS_TEX_COLOR_LINES_NO_DEPTH;
 				case DEBUG_LINES -> POS_TEX_COLOR_DEBUG_LINES_NO_DEPTH;
-				default -> throw new IllegalArgumentException("Unsupported textured draw mode: " + drawMode);
+				case DEBUG_LINE_STRIP -> POS_TEX_COLOR_DEBUG_LINE_STRIP_NO_DEPTH;
+				case TRIANGLE_FAN -> POS_TEX_COLOR_TRIANGLE_FAN_NO_DEPTH;
+				case TRIANGLE_STRIP -> POS_TEX_COLOR_TRIANGLE_STRIP_NO_DEPTH;
+				default -> throw new IllegalArgumentException("Unsupported no-depth draw mode for POS_TEX_COLOR: " + drawMode);
 			};
 		}
+
 		return switch (drawMode) {
 			case QUADS -> POS_COLOR_QUADS_NO_DEPTH;
 			case LINES -> POS_COLOR_LINES_NO_DEPTH;
@@ -171,5 +181,10 @@ public final class ImmediateDrawUtil {
 			case TRIANGLE_STRIP -> POS_COLOR_TRIANGLE_STRIP_NO_DEPTH;
 			default -> throw new IllegalArgumentException("Unsupported no-depth draw mode: " + drawMode);
 		};
+	}
+
+	public static void flushRender() {
+		MinecraftClient client = MinecraftClient.getInstance();
+		client.gameRenderer.guiRenderer.render(client.gameRenderer.fogRenderer.getFogBuffer(FogRenderer.FogType.NONE));
 	}
 }
