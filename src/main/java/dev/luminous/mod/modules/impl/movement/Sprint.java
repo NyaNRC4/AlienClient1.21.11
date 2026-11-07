@@ -6,14 +6,17 @@ import dev.luminous.api.events.eventbus.EventPriority;
 import dev.luminous.api.events.impl.*;
 import dev.luminous.api.utils.path.BaritoneUtil;
 import dev.luminous.api.utils.player.MovementUtil;
+import dev.luminous.core.impl.RotationManager;
 import dev.luminous.mod.modules.Module;
 import dev.luminous.mod.modules.impl.client.AntiCheat;
 import dev.luminous.mod.modules.impl.player.Freecam;
 import dev.luminous.mod.modules.settings.impl.BooleanSetting;
 import dev.luminous.mod.modules.settings.impl.EnumSetting;
 import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
 
 public class Sprint extends Module {
     public static Sprint INSTANCE;
@@ -26,7 +29,7 @@ public class Sprint extends Module {
     public final BooleanSetting sneakingPause =
             add(new BooleanSetting("SneakingPause", false));
     public final BooleanSetting blindnessPause =
-            add(new BooleanSetting("BlindnessPause", false));
+            add(new BooleanSetting("BlindnessPause", true));
     public final BooleanSetting usingPause =
             add(new BooleanSetting("UsingPause", false));
     public final BooleanSetting lagPause =
@@ -66,6 +69,9 @@ public class Sprint extends Module {
     }
 
     boolean pause = false;
+    private Vec3d jumpVelocity;
+    private float jumpTargetYaw;
+    private boolean jumpCorrection;
 
     @EventListener
     public void onPacket(PacketEvent.Receive event) {
@@ -75,39 +81,76 @@ public class Sprint extends Module {
     }
 
     public boolean inWater() {
-        return inWaterPause.getValue() && mc.player.isInFluid();
+        return inWaterPause.getValue()
+                && (mc.player.isTouchingWater()
+                || mc.player.isInLava()
+                || mc.player.isHoldingOntoLadder());
     }
 
     @EventListener
-    public void onMove(TickMovementEvent event) {
-        if (BaritoneUtil.isPathing()) return;
-        if (mc.player == null) return;
-        if (inWater()) {
+    public void onTickMovement(TickMovementEvent event) {
+        if (mc.player == null || BaritoneUtil.isPathing()) {
             return;
         }
-        if (mode.getValue() == Mode.PressKey) {
+
+        if (mode.is(Mode.PressKey)) {
             mc.options.sprintKey.setPressed(true);
             return;
         }
-        if (pause) {
-            if (mc.player.isSprinting()) mc.player.setSprinting(false);
+
+        if (inWater()) {
             return;
         }
-        if (!mc.player.isSprinting() && shouldSprint()) {
+
+        if (!shouldSprint()) {
+            if (mc.player.isSprinting()) {
+                mc.player.setSprinting(false);
+            }
+            return;
+        }
+
+        if (!mc.player.isSprinting()) {
             mc.player.setSprinting(true);
+        } else if (mc.player.horizontalCollision && !mc.player.collidedSoftly) {
+            resendStartSprinting();
         }
     }
 
     @EventListener
-    public void onMoved(MovedEvent event) {
-        if (BaritoneUtil.isPathing()) return;
-        if (mc.player == null) return;
-        if (inWater()) {
+    public void onJump(JumpEvent event) {
+        if (mc.player == null) {
             return;
         }
-        if (mode.getValue() != Mode.PressKey && mc.player.isSprinting() && !shouldSprint()) {
-            mc.player.setSprinting(false);
+
+        if (event.isPost()) {
+            if (!jumpCorrection) {
+                return;
+            }
+            jumpCorrection = false;
+
+            Vec3d before = jumpVelocity;
+            Vec3d after = mc.player.getVelocity();
+            if (after.y <= before.y + 1.0E-4) {
+                return;
+            }
+
+            double sin = Math.sin(Math.toRadians(jumpTargetYaw));
+            double cos = Math.cos(Math.toRadians(jumpTargetYaw));
+            double actualX = after.x - before.x;
+            double actualZ = after.z - before.z;
+            mc.player.addVelocity(-sin * 0.2 - actualX, 0.0, cos * 0.2 - actualZ);
+            return;
         }
+
+        if (!mode.is(Mode.Rotation) || !canRotateMovement() || !mc.player.isSprinting()) {
+            return;
+        }
+
+        this.jumpVelocity = mc.player.getVelocity();
+        this.jumpTargetYaw = AntiCheat.INSTANCE.movementSync()
+                ? RotationManager.fixYaw
+                : getSprintYaw(mc.player.getYaw());
+        this.jumpCorrection = true;
     }
 
     @EventListener
@@ -119,50 +162,93 @@ public class Sprint extends Module {
 
     @EventListener
     public void sprint(SprintEvent event) {
-        if (BaritoneUtil.isPathing() || mode.is(Mode.PressKey)) return;
-        if (inWater()) {
+        if (BaritoneUtil.isPathing() || mode.is(Mode.PressKey)) {
             return;
         }
+        if (event.getCurrent()) {
+            return;
+        }
+        if (!mode.is(Mode.Rage)) {
+            return;
+        }
+        if (inWater() || !shouldSprint()) {
+            return;
+        }
+
         event.cancel();
-        event.setSprint(shouldSprint());
+        event.setSprint(true);
+        resendStartSprinting();
+    }
+
+    private void resendStartSprinting() {
+        if (mc.getNetworkHandler() == null) {
+            return;
+        }
+        mc.getNetworkHandler().sendPacket(
+                new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_SPRINTING));
     }
 
     private boolean shouldSprint() {
-        if ((mc.player.getHungerManager().getFoodLevel() > 6 || mc.player.isCreative())
-                && MovementUtil.isMoving()
-                && !pause
-                && (!mc.player.isSneaking() || !sneakingPause.getValue())
-                && (!Alien.PLAYER.isInWeb(mc.player) || !inWebPause.getValue())
-                && (!mc.player.isUsingItem() || !usingPause.getValue())
-                && !mc.player.isRiding()
-                && (!mc.player.hasStatusEffect(StatusEffects.BLINDNESS) || !blindnessPause.getValue())) {
-            switch (mode.getValue()) {
-                case Legit -> {
-                    return mc.player.input.hasForwardMovement()
-                            && (!mc.player.horizontalCollision || mc.player.collidedSoftly);
-                }
-                case Rotation -> {
-                    boolean collideOk = !mc.player.horizontalCollision || mc.player.collidedSoftly;
-                    boolean groundOk = mc.player.isOnGround() || mc.player.isSprinting();
-                    if (AntiCheat.INSTANCE.movementSync()) {
-                        return Sprint.mc.player.forwardSpeed > 0.0f && collideOk && groundOk;
-                    } else {
-                        return (HoleSnap.INSTANCE.isOn() || MathHelper.angleBetween(getSprintYaw(mc.player.getYaw()), Alien.ROTATION.rotationYaw) < 40)
-                                && collideOk && groundOk;
-                    }
-                }
-                case Rage -> {
-                    return true;
-                }
-            }
+        if (mc.player == null) {
+            return false;
         }
-        return false;
+        if (!(mc.player.getHungerManager().getFoodLevel() > 6 || mc.player.isCreative())) {
+            return false;
+        }
+        if (!MovementUtil.isMoving() || pause) {
+            return false;
+        }
+        if (mc.player.isSneaking() && sneakingPause.getValue()) {
+            return false;
+        }
+        if (Alien.PLAYER.isInWeb(mc.player) && inWebPause.getValue()) {
+            return false;
+        }
+        if (mc.player.isUsingItem() && usingPause.getValue()) {
+            return false;
+        }
+        if (mc.player.isRiding() || mc.player.isGliding()) {
+            return false;
+        }
+        if (mc.player.hasStatusEffect(StatusEffects.BLINDNESS) && blindnessPause.getValue()) {
+            return false;
+        }
+        if (inWater()) {
+            return false;
+        }
+
+        return switch (mode.getValue()) {
+            case Legit -> mc.player.input.hasForwardMovement()
+                    && (!mc.player.horizontalCollision || mc.player.collidedSoftly);
+            case Rotation -> {
+                boolean collideOk = !mc.player.horizontalCollision || mc.player.collidedSoftly;
+                boolean groundOk = mc.player.isOnGround() || mc.player.isSprinting();
+                if (AntiCheat.INSTANCE.movementSync()) {
+                    yield mc.player.forwardSpeed > 0.0f && collideOk && groundOk;
+                }
+                yield (HoleSnap.INSTANCE.isOn()
+                        || MathHelper.angleBetween(getSprintYaw(mc.player.getYaw()), Alien.ROTATION.rotationYaw) < 40)
+                        && collideOk && groundOk;
+            }
+            case Rage -> true;
+            case PressKey -> false;
+        };
     }
 
     @EventListener(priority = EventPriority.LOW)
     public void rotate(UpdateRotateEvent event) {
-        if (BaritoneUtil.isPathing()) return;
-        if ((mc.player.getHungerManager().getFoodLevel() > 6 || mc.player.isCreative())
+        if (!canRotateMovement()) {
+            return;
+        }
+        if (mode.is(Mode.Rotation) && !event.isModified()) {
+            event.setYaw(getSprintYaw(mc.player.getYaw()));
+        }
+    }
+
+    private boolean canRotateMovement() {
+        return mc.player != null
+                && !BaritoneUtil.isPathing()
+                && (mc.player.getHungerManager().getFoodLevel() > 6 || mc.player.isCreative())
                 && MovementUtil.isMoving()
                 && !Freecam.INSTANCE.isOn()
                 && !mc.player.isGliding()
@@ -171,12 +257,7 @@ public class Sprint extends Module {
                 && !mc.player.isRiding()
                 && (!mc.player.isUsingItem() || !usingPause.getValue())
                 && !mc.player.isInFluid()
-                && Freecam.INSTANCE.isOff()
-                && (!mc.player.hasStatusEffect(StatusEffects.BLINDNESS) || !blindnessPause.getValue())) {
-            if (mode.is(Mode.Rotation) && !event.isModified()) {
-                event.setYaw(getSprintYaw(mc.player.getYaw()));
-            }
-        }
+                && (!mc.player.hasStatusEffect(StatusEffects.BLINDNESS) || !blindnessPause.getValue());
     }
 
     public enum Mode {

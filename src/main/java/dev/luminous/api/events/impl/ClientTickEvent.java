@@ -12,7 +12,7 @@ extends Event {
     private ClientTickEvent() {
     }
 
-    public static ClientTickEvent get(Event.Stage stage) {
+    public static ClientTickEvent get(Stage stage) {
         ClientTickEvent.instance.stage = stage;
         return instance;
     }

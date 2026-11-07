@@ -40,7 +40,7 @@ extends Module {
     private final BooleanSetting showReason = this.add(new BooleanSetting("ShowReason", false));
 
     public AutoLog() {
-        super("AutoLog", Module.Category.Misc);
+        super("AutoLog", Category.Misc);
         this.setChinese("\u81ea\u52a8\u4e0b\u7ebf");
     }
 

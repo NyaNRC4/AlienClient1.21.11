@@ -73,7 +73,7 @@ public abstract class Module extends Mod {
         return this.description;
     }
 
-    public Module.Category getCategory() {
+    public Category getCategory() {
         return this.category;
     }
 
@@ -214,8 +214,8 @@ public abstract class Module extends Mod {
 
     }
 
-    public boolean onRender3DQueue(MatrixStack matrixStack) {
-        return false;
+    public void onRender3Dqueue(MatrixStack matrixStack) {
+
     }
 
     public void addSetting(Setting setting) {

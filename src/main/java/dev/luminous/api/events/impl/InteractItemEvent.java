@@ -19,14 +19,14 @@ extends Event {
 
     public static InteractItemEvent getPre(Hand hand) {
         InteractItemEvent.INSTANCE.hand = hand;
-        InteractItemEvent.INSTANCE.stage = Event.Stage.Pre;
+        InteractItemEvent.INSTANCE.stage = Stage.Pre;
         INSTANCE.setCancelled(false);
         return INSTANCE;
     }
 
     public static InteractItemEvent getPost(Hand hand) {
         InteractItemEvent.INSTANCE.hand = hand;
-        InteractItemEvent.INSTANCE.stage = Event.Stage.Post;
+        InteractItemEvent.INSTANCE.stage = Stage.Post;
         return INSTANCE;
     }
 }

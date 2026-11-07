@@ -35,7 +35,6 @@ import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
 import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
 import net.minecraft.util.Hand;
-import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
@@ -45,8 +44,6 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.RaycastContext;
 
 import java.awt.*;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 
@@ -55,7 +52,7 @@ public class AutoCrystal
     public static AutoCrystal INSTANCE;
     public BlockPos crystalPos;
     public final Timer lastBreakTimer = new Timer();
-    private final EnumSetting<Page> page = this.add(new EnumSetting<Page>("Page", Page.General));
+    private final EnumSetting<Page> page = this.add(new EnumSetting<>("Page", Page.General));
     final Animation animation = new Animation();
     final DecimalFormat df = new DecimalFormat("0.0");
     private final Timer baseTimer = new Timer();
@@ -87,7 +84,7 @@ public class AutoCrystal
     private final BooleanSetting place = this.add(new BooleanSetting("Place", true, () -> this.page.getValue() == Page.General).setParent());
     public final SliderSetting placeRange = this.add(new SliderSetting("PlaceRange", 5.0, 0.0, 6.0, 0.01, () -> this.page.getValue() == Page.General && this.place.isOpen()).setSuffix("m"));
     private final SliderSetting placeDelay = this.add(new SliderSetting("PlaceDelay", 300, 0, 1000, () -> this.page.getValue() == Page.General && this.place.isOpen()).setSuffix("ms"));
-    private final EnumSetting<SwapMode> autoSwap = this.add(new EnumSetting<SwapMode>("AutoSwap", SwapMode.None, () -> this.page.getValue() == Page.General && this.place.isOpen()));
+    private final EnumSetting<SwapMode> autoSwap = this.add(new EnumSetting<>("AutoSwap", SwapMode.None, () -> this.page.getValue() == Page.General && this.place.isOpen()));
     private final BooleanSetting afterBreak = this.add(new BooleanSetting("AfterBreak", true, () -> this.page.getValue() == Page.General && this.place.isOpen()));
     private final BooleanSetting forcePlace = this.add(new BooleanSetting("ForcePlace", false, () -> this.page.getValue() == Page.General && this.place.isOpen()));
     private final BooleanSetting breakSetting = this.add(new BooleanSetting("Break", true, () -> this.page.getValue() == Page.General).setParent());
@@ -97,14 +94,14 @@ public class AutoCrystal
     private final BooleanSetting breakRemove = this.add(new BooleanSetting("Remove", false, () -> this.page.getValue() == Page.General && this.breakSetting.isOpen()));
     private final BooleanSetting onAdd = this.add(new BooleanSetting("OnAdd", false, () -> this.page.getValue() == Page.General && this.breakSetting.isOpen()));
     private final BooleanSetting resetCD = this.add(new BooleanSetting("ResetAttack", true, () -> this.page.getValue() == Page.General && this.breakSetting.isOpen()));
-    private final EnumSetting<Timing> timing = this.add(new EnumSetting<Timing>("Timing", Timing.All, () -> this.page.getValue() == Page.General));
+    private final EnumSetting<Timing> timing = this.add(new EnumSetting<>("Timing", Timing.All, () -> this.page.getValue() == Page.General));
     private final BooleanSetting interactOnRender = this.add(new BooleanSetting("InteractOnRender", false, () -> this.page.getValue() == Page.General));
     private final SliderSetting wallRange = this.add(new SliderSetting("WallRange", 6.0, 0.0, 6.0, () -> this.page.getValue() == Page.General).setSuffix("m"));
-    private final EnumSetting<SwingSide> swingMode = this.add(new EnumSetting<SwingSide>("Swing", SwingSide.All, () -> this.page.getValue() == Page.General));
+    private final EnumSetting<SwingSide> swingMode = this.add(new EnumSetting<>("Swing", SwingSide.All, () -> this.page.getValue() == Page.General));
     private final ColorSetting text = this.add(new ColorSetting("Text", new Color(-1), () -> this.page.getValue() == Page.Render).injectBoolean(true));
-    private final EnumSetting<TargetESP> mode = this.add(new EnumSetting<TargetESP>("TargetESP", TargetESP.Fill, () -> this.page.getValue() == Page.Render));
+    private final EnumSetting<TargetESP> mode = this.add(new EnumSetting<>("TargetESP", TargetESP.Fill, () -> this.page.getValue() == Page.Render));
     private final SliderSetting animationTime = this.add(new SliderSetting("AnimationTime", 200.0, 0.0, 2000.0, 1.0, () -> this.page.getValue() == Page.Render));
-    private final EnumSetting<Easing> ease = this.add(new EnumSetting<Easing>("Ease", Easing.CubicInOut, () -> this.page.getValue() == Page.Render));
+    private final EnumSetting<Easing> ease = this.add(new EnumSetting<>("Ease", Easing.CubicInOut, () -> this.page.getValue() == Page.Render));
     private final ColorSetting color = this.add(new ColorSetting("TargetColor", new Color(255, 255, 255, 50), () -> this.page.getValue() == Page.Render));
     private final ColorSetting outlineColor = this.add(new ColorSetting("TargetOutlineColor", new Color(255, 255, 255, 50), () -> this.page.getValue() == Page.Render));
     private final ColorSetting hitColor = this.add(new ColorSetting("HitColor", new Color(255, 255, 255, 150), () -> this.page.getValue() == Page.Render));
@@ -177,8 +174,8 @@ public class AutoCrystal
     BlockPos basePos;
 
     public AutoCrystal() {
-        super("AutoCrystal", Module.Category.Combat);
-        this.setChinese("\u81ea\u52a8\u6c34\u6676");
+        super("AutoCrystal", Category.Combat);
+        this.setChinese("自动水晶");
         INSTANCE = this;
         Alien.EVENT_BUS.subscribe(new CrystalRender());
     }
@@ -247,18 +244,18 @@ public class AutoCrystal
             }
         }
         if (this.displayTarget != null && !this.noPosTimer.passed(500L)) {
-            this.doRender(matrixStack, mc.getRenderTickCounter().getTickProgress(true), (Entity)this.displayTarget, this.mode.getValue());
+            this.doRender(matrixStack, mc.getRenderTickCounter().getTickProgress(true), this.displayTarget, this.mode.getValue());
         }
     }
 
     public void doRender(MatrixStack stack, float partialTicks, Entity entity, TargetESP mode) {
         switch (mode.ordinal()) {
             case 0: {
-                Render3DUtil.draw3DBox(stack, ((IEntity)entity).getDimensions().getBoxAt(new Vec3d(MathUtil.interpolate(entity.lastRenderX, entity.getX(), (double)partialTicks), MathUtil.interpolate(entity.lastRenderY, entity.getY(), (double)partialTicks), MathUtil.interpolate(entity.lastRenderZ, entity.getZ(), (double)partialTicks))).expand(0.0, 0.1, 0.0), ColorUtil.fadeColor(this.color.getValue(), this.hitColor.getValue(), this.animation.get(0.0, this.animationTime.getValueInt(), this.ease.getValue())), ColorUtil.fadeColor(this.outlineColor.getValue(), this.hitOutlineColor.getValue(), this.animation.get(0.0, this.animationTime.getValueInt(), this.ease.getValue())), true, true);
+                Render3DUtil.draw3DBox(stack, ((IEntity)entity).getDimensions().getBoxAt(new Vec3d(MathUtil.interpolate(entity.lastRenderX, entity.getX(), partialTicks), MathUtil.interpolate(entity.lastRenderY, entity.getY(), partialTicks), MathUtil.interpolate(entity.lastRenderZ, entity.getZ(), partialTicks))).expand(0.0, 0.1, 0.0), ColorUtil.fadeColor(this.color.getValue(), this.hitColor.getValue(), this.animation.get(0.0, this.animationTime.getValueInt(), this.ease.getValue())), ColorUtil.fadeColor(this.outlineColor.getValue(), this.hitOutlineColor.getValue(), this.animation.get(0.0, this.animationTime.getValueInt(), this.ease.getValue())), true, true);
                 break;
             }
             case 1: {
-                Render3DUtil.draw3DBox(stack, ((IEntity)entity).getDimensions().getBoxAt(new Vec3d(MathUtil.interpolate(entity.lastRenderX, entity.getX(), (double)partialTicks), MathUtil.interpolate(entity.lastRenderY, entity.getY(), (double)partialTicks), MathUtil.interpolate(entity.lastRenderZ, entity.getZ(), (double)partialTicks))).expand(0.0, 0.1, 0.0), ColorUtil.fadeColor(this.color.getValue(), this.hitColor.getValue(), this.animation.get(0.0, this.animationTime.getValueInt(), this.ease.getValue())), ColorUtil.fadeColor(this.outlineColor.getValue(), this.hitOutlineColor.getValue(), this.animation.get(0.0, this.animationTime.getValueInt(), this.ease.getValue())), false, true);
+                Render3DUtil.draw3DBox(stack, ((IEntity)entity).getDimensions().getBoxAt(new Vec3d(MathUtil.interpolate(entity.lastRenderX, entity.getX(), partialTicks), MathUtil.interpolate(entity.lastRenderY, entity.getY(), partialTicks), MathUtil.interpolate(entity.lastRenderZ, entity.getZ(), partialTicks))).expand(0.0, 0.1, 0.0), ColorUtil.fadeColor(this.color.getValue(), this.hitColor.getValue(), this.animation.get(0.0, this.animationTime.getValueInt(), this.ease.getValue())), ColorUtil.fadeColor(this.outlineColor.getValue(), this.hitOutlineColor.getValue(), this.animation.get(0.0, this.animationTime.getValueInt(), this.ease.getValue())), false, true);
                 break;
             }
             case 2: {
@@ -266,7 +263,7 @@ public class AutoCrystal
                 break;
             }
             case 3: {
-                Render3DUtil.drawTargetEsp(stack, (Entity)this.displayTarget, this.color.getValue());
+                Render3DUtil.drawTargetEsp(stack, this.displayTarget, this.color.getValue());
             }
         }
     }
@@ -353,12 +350,12 @@ public class AutoCrystal
         this.tempDamage = 0.0f;
         this.tempBasePos = null;
         float baseDamage = 0.0f;
-        ArrayList<PlayerEntityPredict> list = new ArrayList<PlayerEntityPredict>();
+        ArrayList<PlayerEntityPredict> list = new ArrayList<>();
         for (PlayerEntity target : CombatUtil.getEnemies(this.targetRange.getValueFloat())) {
             if (target.hurtTime > this.hurtTime.getValueInt()) continue;
             list.add(new PlayerEntityPredict(target, this.maxMotionY.getValue(), this.predictTicks.getValueInt(), this.simulation.getValueInt(), this.step.getValue(), this.doubleStep.getValue(), this.jump.getValue(), this.inBlockPause.getValue()));
         }
-        PlayerEntityPredict self = new PlayerEntityPredict((PlayerEntity)AutoCrystal.mc.player, this.maxMotionY.getValue(), this.selfPredict.getValueInt(), this.simulation.getValueInt(), this.step.getValue(), this.doubleStep.getValue(), this.jump.getValue(), this.inBlockPause.getValue());
+        PlayerEntityPredict self = new PlayerEntityPredict(AutoCrystal.mc.player, this.maxMotionY.getValue(), this.selfPredict.getValueInt(), this.simulation.getValueInt(), this.step.getValue(), this.doubleStep.getValue(), this.jump.getValue(), this.inBlockPause.getValue());
         if (list.isEmpty()) {
             this.lastBreakTimer.reset();
         } else {
@@ -368,11 +365,11 @@ public class AutoCrystal
             for (Entity entity : Alien.THREAD.getEntities()) {
                 if (!(entity instanceof EndCrystalEntity)) continue;
                 EndCrystalEntity crystal = (EndCrystalEntity)entity;
-                if (entity.age < this.minAge.getValueInt() || (attackVec = this.getAttackVec(crystal.getEntityPos())) == null || !AutoCrystal.mc.player.canSee((Entity)crystal) && AutoCrystal.mc.player.getEyePos().distanceTo(attackVec) > this.wallRange.getValue()) continue;
+                if (entity.age < this.minAge.getValueInt() || (attackVec = this.getAttackVec(crystal.getEntityPos())) == null || !AutoCrystal.mc.player.canSee(crystal) && AutoCrystal.mc.player.getEyePos().distanceTo(attackVec) > this.wallRange.getValue()) continue;
                 selfDamage = this.calculateDamage(crystal.getEntityPos(), self.player, self.predict);
                 for (PlayerEntityPredict pap : list) {
                     damage = this.calculateDamage(crystal.getEntityPos(), pap.player, pap.predict);
-                    if (!(damage > this.breakDamage) || (double)selfDamage > this.maxSelf.getValue() || this.reserve.getValue() > 0.0 && (double)selfDamage > (double)(AutoCrystal.mc.player.getHealth() + AutoCrystal.mc.player.getAbsorptionAmount()) - this.reserve.getValue() || damage < EntityUtil.getHealth((Entity)pap.player) && ((double)damage < this.getDamage(pap.player) || this.balance.getValue() && (this.getDamage(pap.player) == this.forceMin.getValue() ? (double)damage < (double)selfDamage - 2.5 : (double)damage < (double)selfDamage + this.balanceOffset.getValue()))) continue;
+                    if (!(damage > this.breakDamage) || (double)selfDamage > this.maxSelf.getValue() || this.reserve.getValue() > 0.0 && (double)selfDamage > (double)(AutoCrystal.mc.player.getHealth() + AutoCrystal.mc.player.getAbsorptionAmount()) - this.reserve.getValue() || damage < EntityUtil.getHealth(pap.player) && ((double)damage < this.getDamage(pap.player) || this.balance.getValue() && (this.getDamage(pap.player) == this.forceMin.getValue() ? (double)damage < (double)selfDamage - 2.5 : (double)damage < (double)selfDamage + this.balanceOffset.getValue()))) continue;
                     this.breakDamage = damage;
                     this.tempBreakCrystal = crystal;
                     this.displayTarget = pap.player;
@@ -397,14 +394,14 @@ public class AutoCrystal
                     if (base && this.onlyBelow.getValue() && (double)pos.getY() - 0.5 > pap.player.getY()) continue;
                     float f = damage = base ? this.calculateBaseDamage(pos, pap.player, pap.predict) : this.calculateDamage(pos, pap.player, pap.predict);
                     if (base) {
-                        if (!((double)this.tempDamage <= this.overrideMax.getValue()) || !(damage > this.tempDamage) || !(damage > baseDamage) || (double)selfDamage > this.baseMax.getValue() || this.reserve.getValue() > 0.0 && (double)selfDamage > (double)(AutoCrystal.mc.player.getHealth() + AutoCrystal.mc.player.getAbsorptionAmount()) - this.reserve.getValue() || damage < EntityUtil.getHealth((Entity)pap.player) && ((double)damage < this.baseMin.getValue() || this.baseBalance.getValue() && damage < selfDamage)) continue;
+                        if (!((double)this.tempDamage <= this.overrideMax.getValue()) || !(damage > this.tempDamage) || !(damage > baseDamage) || (double)selfDamage > this.baseMax.getValue() || this.reserve.getValue() > 0.0 && (double)selfDamage > (double)(AutoCrystal.mc.player.getHealth() + AutoCrystal.mc.player.getAbsorptionAmount()) - this.reserve.getValue() || damage < EntityUtil.getHealth(pap.player) && ((double)damage < this.baseMin.getValue() || this.baseBalance.getValue() && damage < selfDamage)) continue;
                         this.displayTarget = pap.player;
                         baseDamage = damage;
                         this.tempBasePos = pos.down();
                         this.tempPos = null;
                         continue;
                     }
-                    if (!(damage > this.tempDamage) || !(damage >= baseDamage) && !((double)this.tempDamage > this.overrideMax.getValue()) || (double)selfDamage > this.maxSelf.getValue() || this.reserve.getValue() > 0.0 && (double)selfDamage > (double)(AutoCrystal.mc.player.getHealth() + AutoCrystal.mc.player.getAbsorptionAmount()) - this.reserve.getValue() || damage < EntityUtil.getHealth((Entity)pap.player) && ((double)damage < this.getDamage(pap.player) || this.balance.getValue() && (this.getDamage(pap.player) == this.forceMin.getValue() ? (double)damage < (double)selfDamage - 2.5 : (double)damage < (double)selfDamage + this.balanceOffset.getValue()))) continue;
+                    if (!(damage > this.tempDamage) || !(damage >= baseDamage) && !((double)this.tempDamage > this.overrideMax.getValue()) || (double)selfDamage > this.maxSelf.getValue() || this.reserve.getValue() > 0.0 && (double)selfDamage > (double)(AutoCrystal.mc.player.getHealth() + AutoCrystal.mc.player.getAbsorptionAmount()) - this.reserve.getValue() || damage < EntityUtil.getHealth(pap.player) && ((double)damage < this.getDamage(pap.player) || this.balance.getValue() && (this.getDamage(pap.player) == this.forceMin.getValue() ? (double)damage < (double)selfDamage - 2.5 : (double)damage < (double)selfDamage + this.balanceOffset.getValue()))) continue;
                     this.displayTarget = pap.player;
                     this.tempPos = pos;
                     this.tempBasePos = null;
@@ -416,10 +413,10 @@ public class AutoCrystal
             if (this.antiSurround.getValue() && PacketMine.getBreakPos() != null && PacketMine.progress >= (double)this.miningProgress.getValueFloat() && !BlockUtil.hasEntity(PacketMine.getBreakPos(), false) && this.tempDamage <= this.antiSurroundMax.getValueFloat()) {
                 for (PlayerEntityPredict pap : list) {
                     BlockPosX pos = new BlockPosX(pap.player.getEntityPos().add(0.0, 0.5, 0.0));
-                    if (BlockUtil.canCollide((Entity)pap.player, new Box((BlockPos)pos))) continue;
+                    if (BlockUtil.canCollide(pap.player, new Box(pos))) continue;
                     for (Direction i : Direction.values()) {
                         BlockPos offsetPos;
-                        if (i == Direction.DOWN || i == Direction.UP || !(offsetPos = pos.offset(i)).equals((Object)PacketMine.getBreakPos())) continue;
+                        if (i == Direction.DOWN || i == Direction.UP || !(offsetPos = pos.offset(i)).equals(PacketMine.getBreakPos())) continue;
                         for (Direction direction : Direction.values()) {
                             float selfDamage2;
                             if (direction == Direction.DOWN || direction == Direction.UP || !this.canPlaceCrystal(offsetPos.offset(direction), false, false) || !((double)(selfDamage2 = this.calculateDamage(offsetPos.offset(direction), self.player, self.predict)) < this.maxSelf.getValue()) || this.reserve.getValue() > 0.0 && (double)selfDamage2 > (double)(AutoCrystal.mc.player.getHealth() + AutoCrystal.mc.player.getAbsorptionAmount()) - this.reserve.getValue()) continue;
@@ -442,7 +439,7 @@ public class AutoCrystal
     private void onEntity(EntitySpawnedEvent event) {
         EndCrystalEntity crystal;
         Entity entity = event.getEntity();
-        if (this.onAdd.getValue() && entity instanceof EndCrystalEntity && (crystal = (EndCrystalEntity)entity).getBlockPos().equals((Object)this.syncPos)) {
+        if (this.onAdd.getValue() && entity instanceof EndCrystalEntity && (crystal = (EndCrystalEntity)entity).getBlockPos().equals(this.syncPos)) {
             this.doBreak(crystal);
         }
     }
@@ -464,7 +461,7 @@ public class AutoCrystal
 
     public boolean behindWall(BlockPos pos, Vec3d attackVec) {
         Vec3d crystalEyePos = new Vec3d((double)pos.getX() + 0.5, (double)pos.getY() + 1.7, (double)pos.getZ() + 0.5);
-        BlockHitResult result = AutoCrystal.mc.world.raycast(new RaycastContext(AutoCrystal.mc.player.getEyePos(), crystalEyePos, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, (Entity)AutoCrystal.mc.player));
+        BlockHitResult result = AutoCrystal.mc.world.raycast(new RaycastContext(AutoCrystal.mc.player.getEyePos(), crystalEyePos, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, AutoCrystal.mc.player));
         if (result == null || result.getType() == HitResult.Type.MISS) {
             return false;
         }
@@ -514,7 +511,7 @@ public class AutoCrystal
     }
 
     public float calculateDamage(BlockPos pos, PlayerEntity player, PlayerEntity predict) {
-        return this.calculateDamage(new Vec3d((double)pos.getX() + 0.5, (double)pos.getY(), (double)pos.getZ() + 0.5), player, predict);
+        return this.calculateDamage(new Vec3d((double)pos.getX() + 0.5, pos.getY(), (double)pos.getZ() + 0.5), player, predict);
     }
 
     public float calculateDamage(Vec3d pos, PlayerEntity player, PlayerEntity predict) {
@@ -535,7 +532,7 @@ public class AutoCrystal
         if (this.terrainIgnore.getValue()) {
             CombatUtil.terrainIgnore = true;
         }
-        float damage = DamageUtils.overridingExplosionDamage(player, predict, new Vec3d((double)pos.getX() + 0.5, (double)pos.getY(), (double)pos.getZ() + 0.5), 12.0f, pos.down(), Blocks.OBSIDIAN.getDefaultState());
+        float damage = DamageUtils.overridingExplosionDamage(player, predict, new Vec3d((double)pos.getX() + 0.5, pos.getY(), (double)pos.getZ() + 0.5), 12.0f, pos.down(), Blocks.OBSIDIAN.getDefaultState());
         CombatUtil.terrainIgnore = false;
         return damage;
     }
@@ -614,7 +611,7 @@ public class AutoCrystal
         this.animation.from = 1.0;
         CombatUtil.breakTimer.reset();
         this.syncPos = entity.getBlockPos();
-        mc.getNetworkHandler().sendPacket(PlayerInteractEntityC2SPacket.attack((Entity)entity, (boolean)AutoCrystal.mc.player.isSneaking()));
+        mc.getNetworkHandler().sendPacket(PlayerInteractEntityC2SPacket.attack(entity, AutoCrystal.mc.player.isSneaking()));
         if (this.resetCD.getValue()) {
             EntityUtil.resetLastAttackedTicks();
         }
@@ -646,7 +643,7 @@ public class AutoCrystal
             return;
         }
         this.syncTimer.reset();
-        for (EndCrystalEntity entity : BlockUtil.getEndCrystals(new Box((double)pos.getX(), (double)pos.getY(), (double)pos.getZ(), (double)(pos.getX() + 1), (double)(pos.getY() + 2), (double)(pos.getZ() + 1)))) {
+        for (EndCrystalEntity entity : BlockUtil.getEndCrystals(new Box(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 2, pos.getZ() + 1))) {
             BlockPos crystalPos;
             Vec3d attackVec;
             if (entity.age < this.minAge.getValueInt() || !entity.isAlive()) continue;
@@ -672,7 +669,7 @@ public class AutoCrystal
             this.animation.from = 1.0;
             CombatUtil.breakTimer.reset();
             this.syncPos = pos;
-            mc.getNetworkHandler().sendPacket(PlayerInteractEntityC2SPacket.attack((Entity)entity, (boolean)AutoCrystal.mc.player.isSneaking()));
+            mc.getNetworkHandler().sendPacket(PlayerInteractEntityC2SPacket.attack(entity, AutoCrystal.mc.player.isSneaking()));
             if (this.resetCD.getValue()) {
                 EntityUtil.resetLastAttackedTicks();
             }
@@ -803,7 +800,7 @@ public class AutoCrystal
         return !this.checkFov.getValue();
     }
 
-    private static enum Page {
+    private enum Page {
         General,
         Base,
         Misc,
@@ -814,7 +811,7 @@ public class AutoCrystal
 
     }
 
-    private static enum SwapMode {
+    private enum SwapMode {
         None,
         Normal,
         Silent,
@@ -822,7 +819,7 @@ public class AutoCrystal
 
     }
 
-    public static enum TargetESP {
+    public enum TargetESP {
         Box,
         Fill,
         Jello,

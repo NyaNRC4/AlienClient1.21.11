@@ -32,27 +32,27 @@ extends Module {
     private final SliderSetting xOffset = this.add(new SliderSetting("X", 100, 0, 1500));
     private final SliderSetting yOffset = this.add(new SliderSetting("Y", 100, 0, 1000));
     private final SliderSetting offset = this.add(new SliderSetting("Offset", 18, 0, 30));
-    private final ItemStack crystalStack = new ItemStack((ItemConvertible)Items.END_CRYSTAL);
-    private final ItemStack xpStack = new ItemStack((ItemConvertible)Items.EXPERIENCE_BOTTLE);
-    private final ItemStack pearlStack = new ItemStack((ItemConvertible)Items.ENDER_PEARL);
-    private final ItemStack obsidianStack = new ItemStack((ItemConvertible)Items.OBSIDIAN);
-    private final ItemStack eGappleStack = new ItemStack((ItemConvertible)Items.ENCHANTED_GOLDEN_APPLE);
-    private final ItemStack gappleStack = new ItemStack((ItemConvertible)Items.GOLDEN_APPLE);
-    private final ItemStack totemStack = new ItemStack((ItemConvertible)Items.TOTEM_OF_UNDYING);
-    private final ItemStack webStack = new ItemStack((ItemConvertible)Items.COBWEB);
-    private final ItemStack anchorStack = new ItemStack((ItemConvertible)Items.RESPAWN_ANCHOR);
-    private final ItemStack glowstoneStack = new ItemStack((ItemConvertible)Items.GLOWSTONE);
-    private final ItemStack pistonStack = new ItemStack((ItemConvertible)Items.PISTON);
-    private final ItemStack redstoneStack = new ItemStack((ItemConvertible)Items.REDSTONE_BLOCK);
-    private final ItemStack enderChestStack = new ItemStack((ItemConvertible)Items.ENDER_CHEST);
-    private final ItemStack fireworkStack = new ItemStack((ItemConvertible)Items.FIREWORK_ROCKET);
+    private final ItemStack crystalStack = new ItemStack(Items.END_CRYSTAL);
+    private final ItemStack xpStack = new ItemStack(Items.EXPERIENCE_BOTTLE);
+    private final ItemStack pearlStack = new ItemStack(Items.ENDER_PEARL);
+    private final ItemStack obsidianStack = new ItemStack(Items.OBSIDIAN);
+    private final ItemStack eGappleStack = new ItemStack(Items.ENCHANTED_GOLDEN_APPLE);
+    private final ItemStack gappleStack = new ItemStack(Items.GOLDEN_APPLE);
+    private final ItemStack totemStack = new ItemStack(Items.TOTEM_OF_UNDYING);
+    private final ItemStack webStack = new ItemStack(Items.COBWEB);
+    private final ItemStack anchorStack = new ItemStack(Items.RESPAWN_ANCHOR);
+    private final ItemStack glowstoneStack = new ItemStack(Items.GLOWSTONE);
+    private final ItemStack pistonStack = new ItemStack(Items.PISTON);
+    private final ItemStack redstoneStack = new ItemStack(Items.REDSTONE_BLOCK);
+    private final ItemStack enderChestStack = new ItemStack(Items.ENDER_CHEST);
+    private final ItemStack fireworkStack = new ItemStack(Items.FIREWORK_ROCKET);
     int x;
     int y;
     DrawContext drawContext;
 
     public ItemsCounter() {
-        super("Items", Module.Category.Client);
-        this.setChinese("\u7269\u54c1\u6570\u91cf");
+        super("Items", Category.Client);
+        this.setChinese("物品数量");
         INSTANCE = this;
     }
 

@@ -12,7 +12,7 @@ extends Event {
     private TickEvent() {
     }
 
-    public static TickEvent get(Event.Stage stage) {
+    public static TickEvent get(Stage stage) {
         TickEvent.instance.stage = stage;
         return instance;
     }

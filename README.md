@@ -3,16 +3,16 @@
 A Fabric client mod for Minecraft 1.21.1,now update to 1.21.11
 
 ## 注意事项
-这个客户端并非完整的AlienV4升级版，它存在许多破损部分
-由刘文涛的50%AiCode和50%我的SkidShitCode组成
-thanks deepseek
-Satin现已完全移除,其相关渲染暂时不会回归
-Backdoor原位于Severmanager,现已完全移除
-以下模块仍未修复或存在问题，尽量别动(你可以试试，大概率不会崩溃=)):
+1. 这个客户端并非完整的AlienV4升级版，它存在许多破损部分
+2. 源码来自刘文涛的50%AiCode和50%我的SkidShitCode组成
+3. 一部分mixin由deepseek修复
+4. Satin现已完全移除,其相关渲染暂时不会回归
+5. Backdoor原位于Severmanager,现已完全移除
+6. 以下模块仍未修复或存在问题，尽量别动(你可以试试，大概率不会崩溃=)):
 `Shader和satin`
-剩下其它模块不清楚，自己研究去吧
-灌注b站NRC4喵喵喵
-enjoy it=)
+7. 剩下其它模块不清楚，自己研究去吧
+8. 灌注b站NRC4喵喵喵
+9. enjoy it=)
 
 ## Core Requirements
 *   **JDK 21** (Mandatory)

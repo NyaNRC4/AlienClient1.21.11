@@ -17,7 +17,7 @@ extends Event {
     private TravelEvent() {
     }
 
-    public static TravelEvent get(Event.Stage stage, PlayerEntity entity) {
+    public static TravelEvent get(Stage stage, PlayerEntity entity) {
         TravelEvent.INSTANCE.entity = entity;
         TravelEvent.INSTANCE.stage = stage;
         INSTANCE.setCancelled(false);

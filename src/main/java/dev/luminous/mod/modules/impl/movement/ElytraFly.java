@@ -251,7 +251,7 @@ public class ElytraFly extends Module {
             hasElytra = InventoryUtil.findItemInventorySlot(Items.ELYTRA) != -1;
         } else {
             hasElytra = false;
-            for (net.minecraft.entity.EquipmentSlot slot : new net.minecraft.entity.EquipmentSlot[]{net.minecraft.entity.EquipmentSlot.HEAD, net.minecraft.entity.EquipmentSlot.CHEST, net.minecraft.entity.EquipmentSlot.LEGS, net.minecraft.entity.EquipmentSlot.FEET}) {
+            for (EquipmentSlot slot : new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET}) {
                 ItemStack is = ElytraFly.mc.player.getEquippedStack(slot);
                 if (!(is.isOf(Items.ELYTRA))) continue;
                 this.hasElytra = true;

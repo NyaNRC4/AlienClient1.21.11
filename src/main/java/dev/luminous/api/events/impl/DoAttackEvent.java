@@ -10,12 +10,12 @@ extends Event {
     public static final DoAttackEvent INSTANCE = new DoAttackEvent();
 
     public static DoAttackEvent getPre() {
-        DoAttackEvent.INSTANCE.stage = Event.Stage.Pre;
+        DoAttackEvent.INSTANCE.stage = Stage.Pre;
         return INSTANCE;
     }
 
     public static DoAttackEvent getPost() {
-        DoAttackEvent.INSTANCE.stage = Event.Stage.Post;
+        DoAttackEvent.INSTANCE.stage = Stage.Post;
         return INSTANCE;
     }
 }

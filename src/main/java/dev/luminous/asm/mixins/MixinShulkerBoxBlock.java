@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(value={ItemStack.class})
 public class MixinShulkerBoxBlock {
     @Inject(method={"appendTooltip"}, at={@At(value="HEAD")}, cancellable=true)
-    private void onAppendTooltip(Item.TooltipContext context, TooltipDisplayComponent displayComponent, net.minecraft.entity.player.PlayerEntity player, TooltipType type, Consumer<Text> textConsumer, CallbackInfo ci) {
+    private void onAppendTooltip(TooltipContext context, TooltipDisplayComponent displayComponent, net.minecraft.entity.player.PlayerEntity player, TooltipType type, Consumer<Text> textConsumer, CallbackInfo ci) {
         if (((ItemStack)(Object)this).getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof ShulkerBoxBlock && ShulkerViewer.INSTANCE.isOn() && ShulkerViewer.INSTANCE.toolTips.getValue()) {
             ci.cancel();
         }

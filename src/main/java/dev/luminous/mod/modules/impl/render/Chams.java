@@ -72,24 +72,25 @@ public class Chams extends Module {
     }
 
     @Override
-    public boolean onRender3DQueue(MatrixStack matrixStack) {
+    public void onRender3Dqueue(MatrixStack matrixStack) {
         if (!isOn() || !throughWall.getValue() || mc.world == null || mc.player == null) {
-            return false;
+            return;
         }
 
         OrderedRenderCommandQueue queue = mc.gameRenderer.getEntityRenderCommandQueue();
         CameraRenderState cameraRenderState = mc.gameRenderer.getEntityRenderStates().cameraRenderState;
         var tickManager = mc.world.getTickManager();
 
-        boolean submitted = false;
         for (Entity entity : mc.world.getEntities()) {
             if (entity != mc.player && chams(entity)) {
                 float delta = mc.getRenderTickCounter().getTickProgress(!tickManager.shouldSkipTick(entity));
                 ModelPlayer.renderTexture(matrixStack, queue, cameraRenderState, entity, delta);
-                submitted = true;
             }
         }
-        return submitted;
+    }
+
+    public boolean cancelsVanillaRender(Entity entity) {
+        return isOn() && throughWall.getValue() && entity != mc.player && chams(entity);
     }
 
     public boolean chams(Entity entity) {

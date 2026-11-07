@@ -58,8 +58,8 @@ public abstract class MixinItemRenderer {
             int overlay,
             int[] tints,
             List<BakedQuad> quads,
-            net.minecraft.client.render.RenderLayer layer,
-            net.minecraft.client.render.item.ItemRenderState.Glint glint,
+            RenderLayer layer,
+            ItemRenderState.Glint glint,
             CallbackInfo ci
     ) {
         if (NoRender.INSTANCE.isOn()

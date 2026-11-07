@@ -63,7 +63,7 @@ public abstract class MixinLivingEntity
     }
 
     @Shadow
-    public abstract void remove(Entity.RemovalReason var1);
+    public abstract void remove(RemovalReason var1);
 
     @Inject(method={"getHandSwingDuration"}, at={@At(value="HEAD")}, cancellable=true)
     private void getArmSwingAnimationEnd(CallbackInfoReturnable<Integer> info) {
@@ -101,7 +101,7 @@ public abstract class MixinLivingEntity
     @Inject(method = "jump", at = @At("HEAD"), cancellable = true)
     private void jumpPre(CallbackInfo ci) {
         LivingEntity self = (LivingEntity) (Object) this;
-        if (!(self instanceof PlayerEntity player)) return;
+        if (self != MinecraftClient.getInstance().player) return;
         JumpEvent pre = JumpEvent.get(Event.Stage.Pre);
         Alien.EVENT_BUS.post(pre);
         if (pre.isCancelled()) {
@@ -112,7 +112,7 @@ public abstract class MixinLivingEntity
     @Inject(method = "jump", at = @At("RETURN"))
     private void jumpPost(CallbackInfo ci) {
         LivingEntity self = (LivingEntity) (Object) this;
-        if (!(self instanceof PlayerEntity)) return;
+        if (self != MinecraftClient.getInstance().player) return;
         JumpEvent post = JumpEvent.get(Event.Stage.Post);
         Alien.EVENT_BUS.post(post);
     }
@@ -136,19 +136,20 @@ public abstract class MixinLivingEntity
     @Inject(method={"setSprinting"}, at={@At(value="HEAD")}, cancellable=true)
     public void setSprintingHook(boolean sprinting, CallbackInfo ci) {
         if (LivingEntity.class.cast((Object)this) == MinecraftClient.getInstance().player) {
-            SprintEvent event = SprintEvent.get();
+            SprintEvent event = SprintEvent.get(sprinting);
             Alien.EVENT_BUS.post(event);
             if (event.isCancelled()) {
                 ci.cancel();
                 sprinting = event.isSprint();
                 super.setSprinting(sprinting);
                 EntityAttributeInstance entityAttributeInstance = this.getAttributeInstance((RegistryEntry<EntityAttribute>)EntityAttributes.MOVEMENT_SPEED);
-                entityAttributeInstance.removeModifier(SPRINTING_SPEED_BOOST.id());
-                if (sprinting) {
-                    entityAttributeInstance.addTemporaryModifier(SPRINTING_SPEED_BOOST);
+                if (entityAttributeInstance != null) {
+                    entityAttributeInstance.removeModifier(SPRINTING_SPEED_BOOST.id());
+                    if (sprinting) {
+                        entityAttributeInstance.addTemporaryModifier(SPRINTING_SPEED_BOOST);
+                    }
                 }
             }
         }
     }
 }
-

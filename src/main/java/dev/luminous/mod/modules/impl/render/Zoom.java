@@ -22,7 +22,7 @@ public class Zoom extends Module {
     public float zoom = 1f;
 
     public Zoom() {
-        super("Zoom", Module.Category.Render);
+        super("Zoom", Category.Render);
         this.setChinese("放大");
         INSTANCE = this;
         Alien.EVENT_BUS.subscribe(new ZoomAnim());

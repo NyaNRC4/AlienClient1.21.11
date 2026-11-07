@@ -5,6 +5,7 @@ import dev.luminous.api.events.impl.Render2DEvent;
 import dev.luminous.api.events.impl.Render3DEvent;
 import dev.luminous.api.utils.Wrapper;
 import dev.luminous.api.utils.path.BaritoneUtil;
+import dev.luminous.api.utils.render.EntityRenderUtil;
 import dev.luminous.api.utils.render.Render3DScheduler;
 import dev.luminous.mod.Mod;
 import dev.luminous.mod.modules.Module;
@@ -245,30 +246,26 @@ public class ModuleManager implements Wrapper {
         }
     }
 
-    public boolean render3DQueue(MatrixStack matrices) {
-        boolean submitted = false;
+    public void render3D(MatrixStack matrices) {
         for (Module module : this.modules) {
             if (!module.isOn()) continue;
             try {
-                submitted |= module.onRender3DQueue(matrices);
+                module.onRender3Dqueue(matrices);
             } catch (Exception e) {
                 e.printStackTrace();
-                if (ClientSetting.INSTANCE.debug.getValue()) {
-                    CommandManager.sendMessage("§4An error has occurred (" + module.getName() + " [onRender3DQueue]) Message: [" + e.getMessage() + "]");
-                }
+                if (ClientSetting.INSTANCE.debug.getValue())
+                    CommandManager.sendMessage("§4An error has occurred (" + module.getName() + " [onRender3DEntities]) Message: [" + e.getMessage() + "]");
             }
         }
-        return submitted;
-    }
+        EntityRenderUtil.flushThroughWall();
 
-    public void render3D(MatrixStack matrices) {
-        block5:
-        {
+        block5: {
             for (Module module : this.modules) {
                 if (!module.isOn()) continue;
                 try {
                     module.onRender3D(matrices);
-                } catch (Exception e) {
+                }
+                catch (Exception e) {
                     e.printStackTrace();
                     if (!ClientSetting.INSTANCE.debug.getValue()) continue;
                     CommandManager.sendMessage("§4An error has occurred (" + module.getName() + " [onRender3D]) Message: [" + e.getMessage() + "]");
@@ -276,7 +273,8 @@ public class ModuleManager implements Wrapper {
             }
             try {
                 Alien.EVENT_BUS.post(Render3DEvent.get(matrices, mc.getRenderTickCounter().getTickProgress(true)));
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 e.printStackTrace();
                 if (!ClientSetting.INSTANCE.debug.getValue()) break block5;
                 CommandManager.sendMessage("§4An error has occurred (Render3DEvent) Message: [" + e.getMessage() + "]");

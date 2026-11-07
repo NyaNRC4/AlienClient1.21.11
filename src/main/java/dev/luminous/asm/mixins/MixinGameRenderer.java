@@ -1,6 +1,10 @@
 package dev.luminous.asm.mixins;
 
+import com.mojang.blaze3d.systems.ProjectionType;
+import com.mojang.blaze3d.systems.RenderSystem;
 import dev.luminous.Alien;
+import dev.luminous.api.utils.render.ProjectionUtil;
+import dev.luminous.mod.modules.Module;
 import dev.luminous.mod.modules.impl.render.*;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.Camera;
@@ -112,6 +116,34 @@ public class MixinGameRenderer {
     @Inject(method = "renderWorld", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/GameRenderer;renderHand(FZLorg/joml/Matrix4f;)V", shift = At.Shift.AFTER))
     public void postRender3dHook(RenderTickCounter tickCounter, CallbackInfo ci) {
         Alien.SHADER.renderShaders();
+    }
+
+    @Inject(
+            method = "renderWorld",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/client/render/WorldRenderer;render(Lnet/minecraft/client/util/memory/ObjectAllocator;Lnet/minecraft/client/render/RenderTickCounter;ZLnet/minecraft/client/render/Camera;Lorg/joml/Matrix4f;Lorg/joml/Matrix4f;Lorg/joml/Matrix4f;Lcom/mojang/blaze3d/buffers/GpuBufferSlice;Lorg/joml/Vector4f;Z)V",
+                    shift = At.Shift.AFTER
+            )
+    )
+    public void render3dHook(RenderTickCounter tickCounter, CallbackInfo ci) {
+        if (Alien.MODULE == null || Alien.FPS == null || Module.nullCheck()) {
+            return;
+        }
+        if (!ProjectionUtil.isValid()) {
+            return;
+        }
+
+        MatrixStack matrices = new MatrixStack();
+        matrices.multiplyPositionMatrix(ProjectionUtil.positionMatrix());
+
+        RenderSystem.backupProjectionMatrix();
+        try {
+            RenderSystem.setProjectionMatrix(ProjectionUtil.projectionSlice(), ProjectionType.PERSPECTIVE);
+            Alien.MODULE.render3D(matrices);
+        } finally {
+            RenderSystem.restoreProjectionMatrix();
+        }
     }
 
     @Inject(method = "getBasicProjectionMatrix(F)Lorg/joml/Matrix4f;", at = @At("TAIL"), cancellable = true)

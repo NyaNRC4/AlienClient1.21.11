@@ -12,7 +12,7 @@ extends Event {
     private JumpEvent() {
     }
 
-    public static JumpEvent get(Event.Stage stage) {
+    public static JumpEvent get(Stage stage) {
         JumpEvent.instance.stage = stage;
         return instance;
     }

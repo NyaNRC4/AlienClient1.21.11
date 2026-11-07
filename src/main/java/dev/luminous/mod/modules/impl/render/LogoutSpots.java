@@ -16,6 +16,7 @@ import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.render.command.OrderedRenderCommandQueue;
 import net.minecraft.client.render.state.CameraRenderState;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
 import net.minecraft.network.packet.s2c.play.PlayerRemoveS2CPacket;
@@ -121,9 +122,9 @@ public class LogoutSpots extends Module {
     }
 
     @Override
-    public boolean onRender3DQueue(MatrixStack matrixStack) {
+    public void onRender3Dqueue(MatrixStack matrixStack) {
         if (!renderSkin.getValue() || logoutCache.isEmpty()) {
-            return false;
+            return;
         }
 
         OrderedRenderCommandQueue queue = mc.gameRenderer.getEntityRenderCommandQueue();
@@ -132,7 +133,6 @@ public class LogoutSpots extends Module {
         for (ModelPlayer data : logoutCache.values()) {
             data.renderPlayerSkin(matrixStack, queue, cameraRenderState, delta);
         }
-        return true;
     }
 
     public static float round2(double value) {

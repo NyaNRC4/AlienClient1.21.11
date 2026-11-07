@@ -17,7 +17,7 @@ extends Module {
     private MoveEvent event;
 
     public FastSwim() {
-        super("FastSwim", Module.Category.Movement);
+        super("FastSwim", Category.Movement);
         this.setChinese("快速游泳");
         INSTANCE = this;
     }

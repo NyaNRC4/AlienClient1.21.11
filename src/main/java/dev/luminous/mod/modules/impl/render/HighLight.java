@@ -13,7 +13,7 @@ public class HighLight extends Module {
     private final ColorSetting boxColor = this.add(new ColorSetting("Box", new Color(255, 0, 0, 100)).injectBoolean(true));
 
     public HighLight() {
-        super("HighLight", Module.Category.Render);
+        super("HighLight", Category.Render);
         INSTANCE = this;
         this.setChinese("方块高亮");
     }

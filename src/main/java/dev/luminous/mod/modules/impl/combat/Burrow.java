@@ -44,10 +44,10 @@ import net.minecraft.util.math.Vec3d;
 public class Burrow
 extends Module {
     public static Burrow INSTANCE;
-    private final EnumSetting<RotateMode> rotate = this.add(new EnumSetting<RotateMode>("RotateMode", RotateMode.Bypass));
-    private final EnumSetting<LagBackMode> lagMode = this.add(new EnumSetting<LagBackMode>("LagMode", LagBackMode.TrollHack));
-    private final EnumSetting<LagBackMode> aboveLagMode = this.add(new EnumSetting<LagBackMode>("MoveLagMode", LagBackMode.Smart));
-    private final List<BlockPos> placePos = new ArrayList<BlockPos>();
+    private final EnumSetting<RotateMode> rotate = this.add(new EnumSetting<>("RotateMode", RotateMode.Bypass));
+    private final EnumSetting<LagBackMode> lagMode = this.add(new EnumSetting<>("LagMode", LagBackMode.TrollHack));
+    private final EnumSetting<LagBackMode> aboveLagMode = this.add(new EnumSetting<>("MoveLagMode", LagBackMode.Smart));
+    private final List<BlockPos> placePos = new ArrayList<>();
     private final Timer tnmer = new Timer();
     private final Timer webTimer = new Timer();
     private final BooleanSetting disable = this.add(new BooleanSetting("Disable", true));
@@ -83,7 +83,7 @@ extends Module {
     private Vec3d currentPos;
 
     public Burrow() {
-        super("Burrow", Module.Category.Combat);
+        super("Burrow", Category.Combat);
         this.setChinese("卡黑曜石");
         INSTANCE = this;
     }
@@ -98,7 +98,7 @@ extends Module {
                 this.disable();
                 return;
             }
-            if (Alien.PLAYER.isInWeb((PlayerEntity)Burrow.mc.player)) {
+            if (Alien.PLAYER.isInWeb(Burrow.mc.player)) {
                 this.webTimer.reset();
                 return;
             }
@@ -114,7 +114,7 @@ extends Module {
             if (!Burrow.mc.player.isOnGround()) {
                 return;
             }
-            if (this.antiLag.getValue() && !BlockUtil.canCollide((Entity)Burrow.mc.player, new Box(EntityUtil.getPlayerPos(true).down()))) {
+            if (this.antiLag.getValue() && !BlockUtil.canCollide(Burrow.mc.player, new Box(EntityUtil.getPlayerPos(true).down()))) {
                 return;
             }
             if (this.single.getValue() && EntityUtil.isInsideBlock()) {
@@ -129,7 +129,7 @@ extends Module {
             int oldSlot = Burrow.mc.player.getInventory().selectedSlot;
             int block = this.getBlock();
             if (block == -1) {
-                CommandManager.sendMessageId("\u00a74No block found.", this.hashCode() - 1);
+                CommandManager.sendMessageId("§4No block found.", this.hashCode() - 1);
                 this.disable();
                 return;
             }
@@ -184,17 +184,17 @@ extends Module {
                     return;
                 }
             } else {
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 0.4199999868869781, Burrow.mc.player.getZ(), false, false));
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 0.7531999805212017, Burrow.mc.player.getZ(), false, false));
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 0.9999957640154541, Burrow.mc.player.getZ(), false, false));
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 1.1661092609382138, Burrow.mc.player.getZ(), false, false));
+                mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 0.4199999868869781, Burrow.mc.player.getZ(), false, false));
+                mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 0.7531999805212017, Burrow.mc.player.getZ(), false, false));
+                mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 0.9999957640154541, Burrow.mc.player.getZ(), false, false));
+                mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 1.1661092609382138, Burrow.mc.player.getZ(), false, false));
                 this.currentPos = new Vec3d(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 1.1661092609382138, Burrow.mc.player.getZ());
             }
             this.tnmer.reset();
             this.doSwap(block);
             if (this.rotate.getValue() == RotateMode.Bypass) {
                 if (above) {
-                    float[] angle = RotationManager.getRotation(this.currentPos.add(0.0, (double)Burrow.mc.player.getEyeHeight(Burrow.mc.player.getPose()), 0.0), Burrow.mc.player.getCameraPosVec(1.0f));
+                    float[] angle = RotationManager.getRotation(this.currentPos.add(0.0, Burrow.mc.player.getEyeHeight(Burrow.mc.player.getPose()), 0.0), Burrow.mc.player.getCameraPosVec(1.0f));
                     Alien.ROTATION.snapAt(angle[0], angle[1]);
                 } else {
                     Alien.ROTATION.snapAt(Alien.ROTATION.rotationYaw, 90.0f);
@@ -225,7 +225,7 @@ extends Module {
             }
             switch ((above ? this.aboveLagMode.getValue() : this.lagMode.getValue()).ordinal()) {
                 case 0: {
-                    ArrayList<BlockPosX> list = new ArrayList<BlockPosX>();
+                    ArrayList<BlockPosX> list = new ArrayList<>();
                     for (double x = Burrow.mc.player.getCameraPosVec(1.0f).getX() - this.smartX.getValue(); x < Burrow.mc.player.getCameraPosVec(1.0f).getX() + this.smartX.getValue(); x += 1.0) {
                         for (double z = Burrow.mc.player.getCameraPosVec(1.0f).getZ() - this.smartX.getValue(); z < Burrow.mc.player.getCameraPosVec(1.0f).getZ() + this.smartX.getValue(); z += 1.0) {
                             for (double d = Burrow.mc.player.getCameraPosVec(1.0f).getY() - this.smartDown.getValue(); d < Burrow.mc.player.getCameraPosVec(1.0f).getY() + this.smartUp.getValue(); d += 1.0) {
@@ -236,54 +236,54 @@ extends Module {
                     double getDistance = 0.0;
                     BlockPos bestPos = null;
                     for (BlockPos blockPos : list) {
-                        if (!this.canMove(blockPos) || (double)MathHelper.sqrt((float)((float)Burrow.mc.player.squaredDistanceTo(blockPos.toCenterPos().add(0.0, -0.5, 0.0)))) < this.smartDistance.getValue() || bestPos != null && !(Burrow.mc.player.squaredDistanceTo(blockPos.toCenterPos()) < getDistance)) continue;
+                        if (!this.canMove(blockPos) || (double)MathHelper.sqrt((float)Burrow.mc.player.squaredDistanceTo(blockPos.toCenterPos().add(0.0, -0.5, 0.0))) < this.smartDistance.getValue() || bestPos != null && !(Burrow.mc.player.squaredDistanceTo(blockPos.toCenterPos()) < getDistance)) continue;
                         bestPos = blockPos;
                         getDistance = Burrow.mc.player.squaredDistanceTo(blockPos.toCenterPos());
                     }
                     if (bestPos == null) break;
-                    mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround((double)bestPos.getX() + 0.5, (double)bestPos.getY(), (double)bestPos.getZ() + 0.5, false, false));
+                    mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround((double)bestPos.getX() + 0.5, bestPos.getY(), (double)bestPos.getZ() + 0.5, false, false));
                     break;
                 }
                 case 1: {
                     for (int n = 0; n < 20; ++n) {
-                        mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 1337.0, Burrow.mc.player.getZ(), false, false));
+                        mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 1337.0, Burrow.mc.player.getZ(), false, false));
                     }
                     break;
                 }
                 case 7: {
-                    mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 1.16610926093821, Burrow.mc.player.getZ(), false, false));
-                    mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 1.170005801788139, Burrow.mc.player.getZ(), false, false));
-                    mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 1.2426308013947485, Burrow.mc.player.getZ(), false, false));
-                    mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 2.3400880035762786, Burrow.mc.player.getZ(), false, false));
-                    mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 2.640088003576279, Burrow.mc.player.getZ(), false, false));
+                    mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 1.16610926093821, Burrow.mc.player.getZ(), false, false));
+                    mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 1.170005801788139, Burrow.mc.player.getZ(), false, false));
+                    mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 1.2426308013947485, Burrow.mc.player.getZ(), false, false));
+                    mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 2.3400880035762786, Burrow.mc.player.getZ(), false, false));
+                    mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 2.640088003576279, Burrow.mc.player.getZ(), false, false));
                     break;
                 }
                 case 8: {
-                    mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 1.1001, Burrow.mc.player.getZ(), false, false));
-                    mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 1.0605, Burrow.mc.player.getZ(), false, false));
-                    mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 1.0802, Burrow.mc.player.getZ(), false, false));
-                    mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 1.1127, Burrow.mc.player.getZ(), false, false));
+                    mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 1.1001, Burrow.mc.player.getZ(), false, false));
+                    mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 1.0605, Burrow.mc.player.getZ(), false, false));
+                    mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 1.0802, Burrow.mc.player.getZ(), false, false));
+                    mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 1.1127, Burrow.mc.player.getZ(), false, false));
                     break;
                 }
                 case 2: {
-                    mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 2.3400880035762786, Burrow.mc.player.getZ(), false, false));
+                    mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 2.3400880035762786, Burrow.mc.player.getZ(), false, false));
                     break;
                 }
                 case 5: {
-                    mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 1.9, Burrow.mc.player.getZ(), false, false));
+                    mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), Burrow.mc.player.getY() + 1.9, Burrow.mc.player.getZ(), false, false));
                     break;
                 }
                 case 3: {
-                    mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), -70.0, Burrow.mc.player.getZ(), false, false));
+                    mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), -70.0, Burrow.mc.player.getZ(), false, false));
                     break;
                 }
                 case 4: {
-                    mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), -7.0, Burrow.mc.player.getZ(), false, false));
+                    mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(Burrow.mc.player.getX(), -7.0, Burrow.mc.player.getZ(), false, false));
                     break;
                 }
                 case 6: {
-                    mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.LookAndOnGround(-180.0f, -90.0f, false, false));
-                    mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.LookAndOnGround(180.0f, 90.0f, false, false));
+                    mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(-180.0f, -90.0f, false, false));
+                    mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(180.0f, 90.0f, false, false));
                 }
             }
             if (this.disable.getValue()) {
@@ -297,7 +297,7 @@ extends Module {
      */
     private boolean fakeMove() {
         double[] offsets = new double[]{1.0, 0.0, -1.0};
-        ArrayList<BlockPosX> offList = new ArrayList<BlockPosX>();
+        ArrayList<BlockPosX> offList = new ArrayList<>();
         BlockPos playerPos = Burrow.mc.player.getBlockPos();
         for (double x : offsets) {
             for (double z : offsets) {
@@ -311,9 +311,9 @@ extends Module {
             this.gotoPos(offPos);
             return true;
         }
-        ArrayList<BlockPos> pos = new ArrayList<BlockPos>();
+        ArrayList<BlockPos> pos = new ArrayList<>();
         for (BlockPos blockPos : offList) {
-            if (playerPos.equals((Object)blockPos) || !this.checkSelf(blockPos) || !this.canMove(blockPos)) continue;
+            if (playerPos.equals(blockPos) || !this.checkSelf(blockPos) || !this.canMove(blockPos)) continue;
             pos.add(blockPos);
         }
         if (!pos.isEmpty()) {
@@ -329,7 +329,7 @@ extends Module {
             return true;
         }
         for (BlockPos blockPos : offList) {
-            if (playerPos.equals((Object)blockPos) || !this.checkSelf(blockPos)) continue;
+            if (playerPos.equals(blockPos) || !this.checkSelf(blockPos)) continue;
             pos.add(blockPos);
         }
         if (!pos.isEmpty()) {
@@ -371,7 +371,7 @@ extends Module {
                 ++this.progress;
                 BlockUtil.placedPos.add(pos);
                 if (this.sound.getValue()) {
-                    Burrow.mc.world.playSound((PlayerEntity)Burrow.mc.player, pos, SoundEvents.BLOCK_STONE_PLACE, SoundCategory.BLOCKS, 1.0f, 0.8f);
+                    Burrow.mc.world.playSound(Burrow.mc.player, pos, SoundEvents.BLOCK_STONE_PLACE, SoundCategory.BLOCKS, 1.0f, 0.8f);
                 }
                 this.clickBlock(pos, Direction.DOWN, rotate, Hand.MAIN_HAND, this.packetPlace.getValue());
             }
@@ -381,7 +381,7 @@ extends Module {
             ++this.progress;
             BlockUtil.placedPos.add(pos);
             if (this.sound.getValue()) {
-                Burrow.mc.world.playSound((PlayerEntity)Burrow.mc.player, pos, SoundEvents.BLOCK_STONE_PLACE, SoundCategory.BLOCKS, 1.0f, 0.8f);
+                Burrow.mc.world.playSound(Burrow.mc.player, pos, SoundEvents.BLOCK_STONE_PLACE, SoundCategory.BLOCKS, 1.0f, 0.8f);
             }
             this.clickBlock(pos.offset(side), side.getOpposite(), rotate, Hand.MAIN_HAND, this.packetPlace.getValue());
         }
@@ -390,7 +390,7 @@ extends Module {
     public void clickBlock(BlockPos pos, Direction side, boolean rotate, Hand hand, boolean packet) {
         Vec3d directionVec = new Vec3d((double)pos.getX() + 0.5 + (double)side.getVector().getX() * 0.5, (double)pos.getY() + 0.5 + (double)side.getVector().getY() * 0.5, (double)pos.getZ() + 0.5 + (double)side.getVector().getZ() * 0.5);
         if (rotate) {
-            float[] angle = RotationManager.getRotation(this.currentPos.add(0.0, (double)Burrow.mc.player.getEyeHeight(Burrow.mc.player.getPose()), 0.0), directionVec);
+            float[] angle = RotationManager.getRotation(this.currentPos.add(0.0, Burrow.mc.player.getEyeHeight(Burrow.mc.player.getPose()), 0.0), directionVec);
             Alien.ROTATION.snapAt(angle[0], angle[1]);
         }
         EntityUtil.swingHand(hand, AntiCheat.INSTANCE.interactSwing.getValue());
@@ -425,11 +425,11 @@ extends Module {
         if (moveDis > 0.0) {
             if (xDiff >= moveDis) {
                 x = x > targetX ? (x -= moveDis) : (x += moveDis);
-                Burrow.mc.player.networkHandler.sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(x, y, z, false, false));
+                Burrow.mc.player.networkHandler.sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(x, y, z, false, false));
             }
             if (zDiff >= moveDis) {
                 z = z > targetZ ? (z -= moveDis) : (z += moveDis);
-                Burrow.mc.player.networkHandler.sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(x, y, z, false, false));
+                Burrow.mc.player.networkHandler.sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(x, y, z, false, false));
             }
         }
         xDiff = Math.abs(x - targetX);
@@ -438,35 +438,35 @@ extends Module {
         if (moveDis > 0.0) {
             while (xDiff > moveDis) {
                 x = x > targetX ? (x -= moveDis) : (x += moveDis);
-                Burrow.mc.player.networkHandler.sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(x, y, z, false, false));
+                Burrow.mc.player.networkHandler.sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(x, y, z, false, false));
                 xDiff = Math.abs(x - targetX);
             }
             while (zDiff > moveDis) {
                 z = z > targetZ ? (z -= moveDis) : (z += moveDis);
-                Burrow.mc.player.networkHandler.sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(x, y, z, false, false));
+                Burrow.mc.player.networkHandler.sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(x, y, z, false, false));
                 zDiff = Math.abs(z - targetZ);
             }
         }
         if ((moveDis = this.moveDis2.getValue()) > 0.0) {
             while (xDiff > moveDis) {
                 x = x > targetX ? (x -= moveDis) : (x += moveDis);
-                Burrow.mc.player.networkHandler.sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(x, y, z, false, false));
+                Burrow.mc.player.networkHandler.sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(x, y, z, false, false));
                 xDiff = Math.abs(x - targetX);
             }
             while (zDiff > moveDis) {
                 z = z > targetZ ? (z -= moveDis) : (z += moveDis);
-                Burrow.mc.player.networkHandler.sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(x, y, z, false, false));
+                Burrow.mc.player.networkHandler.sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(x, y, z, false, false));
                 zDiff = Math.abs(z - targetZ);
             }
         }
         if ((moveDis = this.moveCorrect2.getValue()) > 0.0) {
             if (xDiff >= moveDis) {
                 x = x > targetX ? (x -= moveDis) : (x += moveDis);
-                Burrow.mc.player.networkHandler.sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(x, y, z, false, false));
+                Burrow.mc.player.networkHandler.sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(x, y, z, false, false));
             }
             if (zDiff >= moveDis) {
                 z = z > targetZ ? (z -= moveDis) : (z += moveDis);
-                Burrow.mc.player.networkHandler.sendPacket((Packet)new PlayerMoveC2SPacket.PositionAndOnGround(x, y, z, false, false));
+                Burrow.mc.player.networkHandler.sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(x, y, z, false, false));
             }
         }
         this.currentPos = new Vec3d(x, y, z);
@@ -477,7 +477,7 @@ extends Module {
     }
 
     private boolean canPlace(BlockPos pos) {
-        if (this.noSelfPos.getValue() && pos.equals((Object)EntityUtil.getPlayerPos(true))) {
+        if (this.noSelfPos.getValue() && pos.equals(EntityUtil.getPlayerPos(true))) {
             return false;
         }
         if (!BlockUtil.allowAirPlace() && BlockUtil.getPlaceSide(pos) == null) {
@@ -505,7 +505,7 @@ extends Module {
     }
 
     private boolean trapped(BlockPos pos) {
-        return (BlockUtil.canCollide((Entity)Burrow.mc.player, new Box(pos)) || BlockUtil.getBlock(pos) == Blocks.COBWEB) && this.checkSelf(pos.down(2));
+        return (BlockUtil.canCollide(Burrow.mc.player, new Box(pos)) || BlockUtil.getBlock(pos) == Blocks.COBWEB) && this.checkSelf(pos.down(2));
     }
 
     private int getBlock() {
@@ -521,14 +521,14 @@ extends Module {
         return InventoryUtil.findBlock(Blocks.ENDER_CHEST);
     }
 
-    private static enum RotateMode {
+    private enum RotateMode {
         Bypass,
         Normal,
         None;
 
     }
 
-    private static enum LagBackMode {
+    private enum LagBackMode {
         Smart,
         Invalid,
         TrollHack,

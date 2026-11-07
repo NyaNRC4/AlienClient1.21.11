@@ -2,7 +2,6 @@ package dev.luminous.asm.mixins;
 
 import dev.luminous.Alien;
 import dev.luminous.api.events.impl.LookDirectionEvent;
-import dev.luminous.api.events.impl.SprintEvent;
 import dev.luminous.mod.modules.impl.movement.NoSlow;
 import dev.luminous.mod.modules.impl.movement.Velocity;
 import dev.luminous.mod.modules.impl.render.NoRender;
@@ -76,30 +75,10 @@ public abstract class MixinEntity {
         }
     }
 
-    @Inject(method = {"setSprinting"}, at = {@At("HEAD")}, cancellable = true)
-    public void setSprintingHook(boolean sprinting, CallbackInfo ci) {
-        if (Entity.class.cast(this) == MinecraftClient.getInstance().player) {
-            SprintEvent event = SprintEvent.get();
-            Alien.EVENT_BUS.post(event);
-            if (event.isCancelled()) {
-                ci.cancel();
-                sprinting = event.isSprint();
-                this.setFlag(SPRINTING_FLAG_INDEX, sprinting);
-            }
-        }
-    }
-
     @Inject(method={"getVelocityMultiplier()F"}, at={@At(value="RETURN")}, cancellable=true)
     private void setCallbackInfoReturnable2(CallbackInfoReturnable callbackInfoReturnable) {
         if ((Object) this instanceof ClientPlayerEntity && NoSlow.INSTANCE != null && NoSlow.INSTANCE.isOn()) {
             callbackInfoReturnable.setReturnValue((Object)Float.valueOf(1.0f));
         }
-    }
-
-    @Shadow
-    private static final int SPRINTING_FLAG_INDEX = 3;
-
-    @Shadow
-    protected void setFlag(int index, boolean value) {
     }
 }

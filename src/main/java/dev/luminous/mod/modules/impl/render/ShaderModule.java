@@ -1,15 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.client.util.math.MatrixStack
- *  net.minecraft.entity.Entity
- *  net.minecraft.entity.ItemEntity
- *  net.minecraft.entity.SpawnGroup
- *  net.minecraft.entity.decoration.EndCrystalEntity
- *  net.minecraft.entity.player.PlayerEntity
- *  net.minecraft.util.math.MathHelper
- */
 package dev.luminous.mod.modules.impl.render;
 
 import dev.luminous.Alien;
@@ -64,7 +52,7 @@ extends Module {
 
     public ShaderModule() {
         super("Shader", Module.Category.Render);
-        this.setChinese("\u7740\u8272\u5668");
+        this.setChinese("着色器");
         INSTANCE = this;
     }
 

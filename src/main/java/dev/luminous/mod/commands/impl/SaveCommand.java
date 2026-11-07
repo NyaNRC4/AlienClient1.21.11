@@ -20,7 +20,7 @@ extends Command {
     public void runCommand(String[] parameters) {
         if (parameters.length == 1) {
             this.sendChatMessage("\u00a7fSaving config named " + parameters[0]);
-            File folder = new File(SaveCommand.mc.runDirectory.getPath() + File.separator + dev.luminous.Alien.NAME.toLowerCase() + File.separator + "cfg");
+            File folder = new File(SaveCommand.mc.runDirectory.getPath() + File.separator + Alien.NAME.toLowerCase() + File.separator + "cfg");
             if (!folder.exists()) {
                 folder.mkdirs();
             }
