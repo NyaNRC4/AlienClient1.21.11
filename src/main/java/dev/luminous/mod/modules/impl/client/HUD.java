@@ -24,8 +24,6 @@ import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.world.World;
 
 import java.awt.*;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.List;

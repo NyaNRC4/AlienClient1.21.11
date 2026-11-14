@@ -216,16 +216,12 @@ public class ModelPlayer
         PlayerEntityRenderer playerRenderer = (PlayerEntityRenderer) Wrapper.mc.getEntityRenderDispatcher().getRenderer(clientPlayer);
         PlayerEntityRenderState state = (PlayerEntityRenderState) playerRenderer.createRenderState();
         playerRenderer.updateRenderState(clientPlayer, state, tickDelta);
-        // Keep the skin that was captured while the player was still online.
         state.skinTextures = this.skin;
 
         EntityRenderer renderer = Wrapper.mc.getEntityRenderDispatcher().getRenderer(state);
         Vec3d cameraPos = Wrapper.mc.gameRenderer.getCamera().getCameraPos();
         Vec3d offset = renderer.getPositionOffset(state);
         matrices.push();
-        // Use the interpolated render position from the state, not the raw tick
-        // position.  Otherwise the chams copy snaps once per tick while the
-        // regular entity render moves smoothly (visible stuttering/one-frame lag).
         matrices.translate(
                 state.x - cameraPos.x + offset.x,
                 state.y - cameraPos.y + offset.y,
@@ -236,9 +232,17 @@ public class ModelPlayer
     }
 
     public static void renderTexture(MatrixStack matrices, OrderedRenderCommandQueue queue, CameraRenderState cameraState, Entity entity, float tickDelta) {
+        renderTexture(matrices, queue, cameraState, entity, tickDelta, true);
+    }
+
+    public static void renderTexture(MatrixStack matrices, OrderedRenderCommandQueue queue, CameraRenderState cameraState, Entity entity, float tickDelta, boolean renderLabel) {
         EntityRenderer renderer = Wrapper.mc.getEntityRenderDispatcher().getRenderer(entity);
         EntityRenderState state = renderer.createRenderState();
         renderer.updateRenderState(entity, state, tickDelta);
+        if (!renderLabel) {
+            state.displayName = null;
+            state.leashDatas = null;
+        }
 
         Vec3d cameraPos = Wrapper.mc.gameRenderer.getCamera().getCameraPos();
         Vec3d offset = renderer.getPositionOffset(state);

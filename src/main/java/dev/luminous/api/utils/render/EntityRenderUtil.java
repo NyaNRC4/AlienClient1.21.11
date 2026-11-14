@@ -4,10 +4,14 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuTextureView;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.SimpleFramebuffer;
+import net.minecraft.client.render.command.OrderedRenderCommandQueue;
+import net.minecraft.client.render.state.CameraRenderState;
+import net.minecraft.client.util.math.MatrixStack;
 
 public final class EntityRenderUtil {
 
     private static SimpleFramebuffer throughWallDepth;
+    private static boolean localPlayerOverlayRequested;
 
     private EntityRenderUtil() {
     }
@@ -41,6 +45,46 @@ public final class EntityRenderUtil {
         GpuTextureView previousColorOverride = RenderSystem.outputColorTextureOverride;
         RenderSystem.outputColorTextureOverride = mc.getFramebuffer().getColorAttachmentView();
         RenderSystem.outputDepthTextureOverride = throughWallDepth.getDepthAttachmentView();
+        try {
+            mc.gameRenderer.getEntityRenderDispatcher().render();
+            mc.getBufferBuilders().getEntityVertexConsumers().draw();
+        } finally {
+            RenderSystem.outputColorTextureOverride = previousColorOverride;
+            RenderSystem.outputDepthTextureOverride = previousDepthOverride;
+        }
+    }
+
+    public static void requestSelf() {
+        localPlayerOverlayRequested = true;
+    }
+
+    public static void renderSelf(MatrixStack matrices) {
+        if (!localPlayerOverlayRequested) {
+            return;
+        }
+        localPlayerOverlayRequested = false;
+
+        MinecraftClient mc = MinecraftClient.getInstance();
+        if (mc.player == null || mc.world == null || mc.gameRenderer == null || mc.options == null) {
+            return;
+        }
+        if (mc.options.getPerspective().isFirstPerson() || mc.player.isInvisible() || mc.player.isSpectator()) {
+            return;
+        }
+
+        OrderedRenderCommandQueue queue = mc.gameRenderer.getEntityRenderCommandQueue();
+        CameraRenderState cameraState = mc.gameRenderer.getEntityRenderStates().cameraRenderState;
+        if (queue == null || cameraState == null) {
+            return;
+        }
+
+        float delta = mc.getRenderTickCounter().getTickProgress(!mc.world.getTickManager().shouldSkipTick(mc.player));
+        ModelPlayer.renderTexture(matrices, queue, cameraState, mc.player, delta, false);
+
+        GpuTextureView previousColorOverride = RenderSystem.outputColorTextureOverride;
+        GpuTextureView previousDepthOverride = RenderSystem.outputDepthTextureOverride;
+        RenderSystem.outputColorTextureOverride = mc.getFramebuffer().getColorAttachmentView();
+        RenderSystem.outputDepthTextureOverride = mc.getFramebuffer().getDepthAttachmentView();
         try {
             mc.gameRenderer.getEntityRenderDispatcher().render();
             mc.getBufferBuilders().getEntityVertexConsumers().draw();

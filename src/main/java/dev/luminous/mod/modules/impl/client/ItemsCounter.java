@@ -7,7 +7,6 @@ import dev.luminous.mod.modules.settings.impl.SliderSetting;
 import net.minecraft.block.PistonBlock;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemConvertible;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 

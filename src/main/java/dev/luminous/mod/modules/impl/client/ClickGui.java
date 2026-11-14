@@ -17,8 +17,6 @@ import dev.luminous.mod.modules.settings.impl.EnumSetting;
 import dev.luminous.mod.modules.settings.impl.SliderSetting;
 
 import java.awt.*;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 
 public class ClickGui
         extends Module {
@@ -137,11 +135,5 @@ public class ClickGui
                 ClickGui.this.alphaValue = 1.0;
             }
         }
-    }
-
-    public enum SnowShape {
-        Snowflake,
-        Block,
-        Circle
     }
 }

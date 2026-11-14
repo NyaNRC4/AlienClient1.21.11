@@ -280,6 +280,7 @@ public class ModuleManager implements Wrapper {
                 CommandManager.sendMessage("§4An error has occurred (Render3DEvent) Message: [" + e.getMessage() + "]");
             }
         }
+        EntityRenderUtil.renderSelf(matrices);
         Render3DScheduler.INSTANCE.flush(matrices);
     }
 

@@ -64,13 +64,6 @@ public final class ChatHudUtil implements ChatHud.Backend {
         return result;
     }
 
-    /**
-     * 重包 OrderedText，把“没有显式颜色”的字形设为主题色（作为兜底色）。
-     *
-     * <p>与原 1.21.1 中 {@code drawTextWithShadow(..., color)} 的语义一致：
-     * 传入的 color 只是兜底色，字形 Style 里已有的颜色（来自 {@code §} 颜色字符）
-     * 仍优先，因此文本内的原版颜色代码可以继续修改后续文本。
-     */
     private static OrderedText recolor(OrderedText text, int color) {
         return visitor -> text.accept((index, style, codePoint) -> {
             if (style.getColor() != null) {

@@ -2,6 +2,7 @@ package dev.luminous.mod.modules.impl.render;
 
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.UpdateEvent;
+import dev.luminous.api.utils.render.EntityRenderUtil;
 import dev.luminous.api.utils.render.ModelPlayer;
 import dev.luminous.mod.modules.Module;
 import dev.luminous.mod.modules.settings.impl.BooleanSetting;
@@ -81,11 +82,16 @@ public class Chams extends Module {
         CameraRenderState cameraRenderState = mc.gameRenderer.getEntityRenderStates().cameraRenderState;
         var tickManager = mc.world.getTickManager();
 
+        boolean rendered = false;
         for (Entity entity : mc.world.getEntities()) {
             if (entity != mc.player && chams(entity)) {
                 float delta = mc.getRenderTickCounter().getTickProgress(!tickManager.shouldSkipTick(entity));
                 ModelPlayer.renderTexture(matrixStack, queue, cameraRenderState, entity, delta);
+                rendered = true;
             }
+        }
+        if (rendered) {
+            EntityRenderUtil.requestSelf();
         }
     }
 

@@ -131,7 +131,7 @@ public class Aura extends Module {
                         MathUtil.interpolate(entity.lastRenderY, entity.getY(), partialTicks),
                         MathUtil.interpolate(entity.lastRenderZ, entity.getZ(), partialTicks)
                 )).expand(0, 0.1, 0);
-                Render3DScheduler.INSTANCE.addBox(entityBox, color, outlineColor, true, false);
+                Render3DScheduler.INSTANCE.addBox(entityBox, color, outlineColor, false, true);
             }
             case Jello -> JelloUtil.drawJello(stack, entity, color);
             case ThunderHack -> Render3DUtil.drawTargetEsp(stack, target, color);

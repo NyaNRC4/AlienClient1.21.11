@@ -5,6 +5,7 @@ import dev.luminous.Alien;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.PacketEvent;
 import dev.luminous.api.events.impl.UpdateEvent;
+import dev.luminous.api.utils.render.EntityRenderUtil;
 import dev.luminous.api.utils.render.ModelPlayer;
 import dev.luminous.api.utils.render.Render3DUtil;
 import dev.luminous.asm.accessors.IEntity;
@@ -16,7 +17,6 @@ import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.render.command.OrderedRenderCommandQueue;
 import net.minecraft.client.render.state.CameraRenderState;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
 import net.minecraft.network.packet.s2c.play.PlayerRemoveS2CPacket;
@@ -103,6 +103,7 @@ public class LogoutSpots extends Module {
 
     @Override
     public void onRender3D(MatrixStack matrixStack) {
+        boolean renderedModel = false;
         for (ModelPlayer data : logoutCache.values()) {
             PlayerEntity player = data.player;
             Box box = ((IEntity) player).getDimensions().getBoxAt(player.getEntityPos());
@@ -114,10 +115,14 @@ public class LogoutSpots extends Module {
             }
             if (chamsFill.booleanValue || chamsLine.booleanValue) {
                 data.render(matrixStack, chamsFill, chamsLine);
+                renderedModel = true;
             }
             if (text.booleanValue) {
                 Render3DUtil.drawText3D(player.getName().getString() + (health.getValue() ? TextRadar.getHealthColor(player) + " " + round2(player.getHealth() + player.getAbsorptionAmount()) : "") + (totem.getValue() && Alien.POP.getPop(player) > 0 ? TextRadar.getPopColor(Alien.POP.getPop(player)) + " -" + (Alien.POP.getPop(player)) : ""), new Vec3d(player.getX(), ((IEntity) player).getDimensions().getBoxAt(player.getEntityPos()).maxY + 0.5, player.getZ()), text.getValue());
             }
+        }
+        if (renderedModel) {
+            EntityRenderUtil.requestSelf();
         }
     }
 
@@ -133,6 +138,7 @@ public class LogoutSpots extends Module {
         for (ModelPlayer data : logoutCache.values()) {
             data.renderPlayerSkin(matrixStack, queue, cameraRenderState, delta);
         }
+        EntityRenderUtil.requestSelf();
     }
 
     public static float round2(double value) {

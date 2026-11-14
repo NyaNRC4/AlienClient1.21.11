@@ -50,6 +50,7 @@ public class BaritoneModule extends Module {
     }
 
     public static void forward() {
+        assert mc.player != null;
         Direction direction = mc.player.getHorizontalFacing();
         var x = mc.player.getBlockX() + direction.getVector().getX() * 30000000;
         var z = mc.player.getBlockZ() + direction.getVector().getZ() * 30000000;
