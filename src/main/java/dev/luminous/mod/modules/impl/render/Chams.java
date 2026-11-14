@@ -78,7 +78,7 @@ public class Chams extends Module {
             return;
         }
 
-        OrderedRenderCommandQueue queue = mc.gameRenderer.getEntityRenderCommandQueue();
+        OrderedRenderCommandQueue queue = EntityRenderUtil.entityQueue();
         CameraRenderState cameraRenderState = mc.gameRenderer.getEntityRenderStates().cameraRenderState;
         var tickManager = mc.world.getTickManager();
 

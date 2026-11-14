@@ -1,21 +1,29 @@
 {
   "targets": [
-    "bufIn",
-    "swap",
-    "bufOut"
+    "swap"
   ],
   "passes": [
     {
-      "name": "smoke",
-      "intarget": "bufIn",
-      "outtarget": "swap",
-      "uniforms": []
-    },
-    {
-      "name": "blit",
-      "intarget": "swap",
-      "outtarget": "bufOut",
-      "uniforms": []
+      "vertex_shader": "minecraft:post/screenquad",
+      "fragment_shader": "minecraft:post/smoke",
+      "inputs": [
+        { "sampler": "Diffuse", "source": "scene", "bilinear": false }
+      ],
+      "output": "target:swap",
+      "block": "AlienShader",
+      "uniforms": [
+        { "name": "first", "type": "vec4", "value": [1.0, 1.0, 1.0, 1.0] },
+        { "name": "second", "type": "vec4", "value": [1.0, 1.0, 1.0, 1.0] },
+        { "name": "third", "type": "vec4", "value": [1.0, 1.0, 1.0, 1.0] },
+        { "name": "resolution", "type": "vec4", "value": [1.0, 1.0, 0.0, 0.0] },
+        { "name": "radius", "type": "float", "value": 2.0 },
+        { "name": "quality", "type": "float", "value": 1.0 },
+        { "name": "divider", "type": "float", "value": 150.0 },
+        { "name": "maxSample", "type": "float", "value": 10.0 },
+        { "name": "alpha1", "type": "float", "value": 1.0 },
+        { "name": "time", "type": "float", "value": 0.0 },
+        { "name": "oct", "type": "int", "value": [10] }
+      ]
     }
   ]
 }

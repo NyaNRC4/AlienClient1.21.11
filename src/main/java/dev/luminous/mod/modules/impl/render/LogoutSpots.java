@@ -132,7 +132,7 @@ public class LogoutSpots extends Module {
             return;
         }
 
-        OrderedRenderCommandQueue queue = mc.gameRenderer.getEntityRenderCommandQueue();
+        OrderedRenderCommandQueue queue = EntityRenderUtil.entityQueue();
         CameraRenderState cameraRenderState = mc.gameRenderer.getEntityRenderStates().cameraRenderState;
         float delta = mc.getRenderTickCounter().getTickProgress(true);
         for (ModelPlayer data : logoutCache.values()) {
@@ -146,4 +146,5 @@ public class LogoutSpots extends Module {
         bd = bd.setScale(1, RoundingMode.HALF_UP);
         return bd.floatValue();
     }
+
 }

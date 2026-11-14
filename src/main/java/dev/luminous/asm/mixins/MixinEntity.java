@@ -52,9 +52,6 @@ public abstract class MixinEntity {
 
     @Inject(method = "isGlowing", at = @At("HEAD"), cancellable = true)
     void isGlowingHook(CallbackInfoReturnable<Boolean> cir) {
-        if (ShaderModule.INSTANCE.isOn()) {
-            cir.setReturnValue(ShaderModule.INSTANCE.shouldRender(Entity.class.cast(this)));
-        }
     }
 
     @ModifyArgs(method = "pushAwayFrom", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;addVelocity(DDD)V"))

@@ -19,40 +19,48 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.MathHelper;
 
 public class ShaderModule
-extends Module {
+        extends Module {
     public static ShaderModule INSTANCE;
-    private final EnumSetting<Page> page = this.add(new EnumSetting<Page>("Page", Page.Shader));
-    public final EnumSetting<ShaderManager.Shader> mode = this.add(new EnumSetting<ShaderManager.Shader>("Mode", ShaderManager.Shader.Solid, () -> this.page.getValue() == Page.Shader));
-    public final SliderSetting speed = this.add(new SliderSetting("Speed", 4.0, 0.0, 20.0, 0.1, () -> this.page.getValue() == Page.Shader));
-    public final ColorSetting fill = this.add(new ColorSetting("Color", () -> this.page.getValue() == Page.Shader));
-    public final SliderSetting maxSample = this.add(new SliderSetting("MaxSample", 10.0, 0.0, 20.0, () -> this.page.getValue() == Page.Shader));
-    public final SliderSetting divider = this.add(new SliderSetting("Divider", 150.0, 0.0, 300.0, () -> this.page.getValue() == Page.Shader));
-    public final SliderSetting radius = this.add(new SliderSetting("Radius", 2.0, 0.0, 6.0, () -> this.page.getValue() == Page.Shader));
-    public final SliderSetting smoothness = this.add(new SliderSetting("Smoothness", 1.0, 0.0, 1.0, 0.01, () -> this.page.getValue() == Page.Shader));
-    public final SliderSetting alpha = this.add(new SliderSetting("GlowAlpha", 255, 0, 255, () -> this.page.getValue() == Page.Shader));
-    public final SliderSetting maxRange = this.add(new SliderSetting("MaxRange", 64, 16, 512, () -> this.page.getValue() == Page.Target));
-    public final SliderSetting pulseSpeed = this.add(new SliderSetting("PulseSize", 10.0, 0.0, 200.0, 0.1, () -> this.page.getValue() == Page.Color));
-    public final ColorSetting pulse = this.add(new ColorSetting("Pulse", new Color(255, 255, 255), () -> this.page.getValue() == Page.Color));
-    public final SliderSetting step = this.add(new SliderSetting("Step", 0.5, 0.0, 4.0, 0.01f, () -> this.page.getValue() == Page.Color));
-    public final SliderSetting octaves = this.add(new SliderSetting("Octaves", 10, 5, 30, () -> this.page.getValue() == Page.Color));
-    public final ColorSetting smoke1 = this.add(new ColorSetting("Color1", new Color(255, 255, 255), () -> this.page.getValue() == Page.Color));
-    public final ColorSetting smoke2 = this.add(new ColorSetting("Color2", new Color(255, 255, 255), () -> this.page.getValue() == Page.Color));
-    public final ColorSetting smoke3 = this.add(new ColorSetting("Color3", new Color(255, 255, 255), () -> this.page.getValue() == Page.Color));
-    public final ColorSetting smoke4 = this.add(new ColorSetting("Color4", new Color(255, 255, 255), () -> this.page.getValue() == Page.Color));
-    private final BooleanSetting hands = this.add(new BooleanSetting("Hands", true, () -> this.page.getValue() == Page.Target));
-    private final BooleanSetting self = this.add(new BooleanSetting("Self", true, () -> this.page.getValue() == Page.Target));
-    private final BooleanSetting players = this.add(new BooleanSetting("Players", true, () -> this.page.getValue() == Page.Target));
-    private final BooleanSetting friends = this.add(new BooleanSetting("Friends", true, () -> this.page.getValue() == Page.Target));
-    private final BooleanSetting crystals = this.add(new BooleanSetting("Crystals", true, () -> this.page.getValue() == Page.Target));
-    private final BooleanSetting creatures = this.add(new BooleanSetting("Creatures", false, () -> this.page.getValue() == Page.Target));
-    private final BooleanSetting monsters = this.add(new BooleanSetting("Monsters", false, () -> this.page.getValue() == Page.Target));
-    private final BooleanSetting ambients = this.add(new BooleanSetting("Ambients", false, () -> this.page.getValue() == Page.Target));
-    private final BooleanSetting items = this.add(new BooleanSetting("Items", true, () -> this.page.getValue() == Page.Target));
-    private final BooleanSetting others = this.add(new BooleanSetting("Others", false, () -> this.page.getValue() == Page.Target));
+    private final EnumSetting<Page> page = add(new EnumSetting<>("Page", Page.Shader));
+    public final EnumSetting<ShaderManager.Shader> mode = add(new EnumSetting<>("Mode", ShaderManager.Shader.Solid, () -> page.getValue() == Page.Shader));
+    public final SliderSetting speed = add(new SliderSetting("Speed", 4, 0, 20, 0.1, () -> page.getValue() == Page.Shader));
+    public final ColorSetting fill = add(new ColorSetting("Color", () -> page.getValue() == Page.Shader));
+    public final SliderSetting maxSample =
+            add(new SliderSetting("MaxSample", 10.0f, 0f, 20.0f, () -> page.getValue() == Page.Shader));
+    public final SliderSetting divider =
+            add(new SliderSetting("Divider", 150.0f, 0f, 300.0f, () -> page.getValue() == Page.Shader));
+    public final SliderSetting radius =
+            add(new SliderSetting("Radius", 2.0f, 0f, 6.0f, () -> page.getValue() == Page.Shader));
+    public final SliderSetting smoothness =
+            add(new SliderSetting("Smoothness", 1.0f, 0f, 1.0f, 0.01, () -> page.getValue() == Page.Shader));
+    public final SliderSetting alpha =
+            add(new SliderSetting("GlowAlpha", 255, 0, 255, () -> page.getValue() == Page.Shader));
+    public final SliderSetting maxRange = add(new SliderSetting("MaxRange", 64, 16, 512, () -> page.getValue() == Page.Target));
+
+    public final SliderSetting pulseSpeed = add(new SliderSetting("PulseSize", 10, 0, 200, 0.1, () -> page.getValue() == Page.Color));
+    public final ColorSetting pulse = add(new ColorSetting("Pulse", new Color(255, 255, 255), () -> page.getValue() == Page.Color));
+    public final SliderSetting step =
+            add(new SliderSetting("Step", 0.5f, 0f, 4.0f, 0.01f, () -> page.getValue() == Page.Color));
+    public final SliderSetting octaves = add(new SliderSetting("Octaves", 10, 5, 30, () -> page.getValue() == Page.Color));
+    public final ColorSetting smoke1 = add(new ColorSetting("Color1", new Color(255, 255, 255), () -> page.getValue() == Page.Color));
+    public final ColorSetting smoke2 = add(new ColorSetting("Color2", new Color(255, 255, 255), () -> page.getValue() == Page.Color));
+    public final ColorSetting smoke3 = add(new ColorSetting("Color3", new Color(255, 255, 255), () -> page.getValue() == Page.Color));
+    public final ColorSetting smoke4 = add(new ColorSetting("Color4", new Color(255, 255, 255), () -> page.getValue() == Page.Color));
+
+    private final BooleanSetting hands = add(new BooleanSetting("Hands", true, () -> page.getValue() == Page.Target));
+    private final BooleanSetting self = add(new BooleanSetting("Self", true, () -> page.getValue() == Page.Target));
+    private final BooleanSetting players = add(new BooleanSetting("Players", true, () -> page.getValue() == Page.Target));
+    private final BooleanSetting friends = add(new BooleanSetting("Friends", true, () -> page.getValue() == Page.Target));
+    private final BooleanSetting crystals = add(new BooleanSetting("Crystals", true, () -> page.getValue() == Page.Target));
+    private final BooleanSetting creatures = add(new BooleanSetting("Creatures", false, () -> page.getValue() == Page.Target));
+    private final BooleanSetting monsters = add(new BooleanSetting("Monsters", false, () -> page.getValue() == Page.Target));
+    private final BooleanSetting ambients = add(new BooleanSetting("Ambients", false, () -> page.getValue() == Page.Target));
+    private final BooleanSetting items = add(new BooleanSetting("Items", true, () -> page.getValue() == Page.Target));
+    private final BooleanSetting others = add(new BooleanSetting("Others", false, () -> page.getValue() == Page.Target));
 
     public ShaderModule() {
-        super("Shader", Module.Category.Render);
-        this.setChinese("着色器");
+        super("Shader", Category.Render);
+        setChinese("着色器");
         INSTANCE = this;
     }
 
@@ -68,27 +76,30 @@ extends Module {
         if (ShaderModule.mc.player == null) {
             return false;
         }
-        if ((double)MathHelper.sqrt((float)((float)ShaderModule.mc.player.squaredDistanceTo(entity.getEntityPos()))) > this.maxRange.getValue()) {
+        if ((double)MathHelper.sqrt((float)ShaderModule.mc.player.squaredDistanceTo(entity.getEntityPos())) > this.maxRange.getValue()) {
             return false;
         }
         Entity entity2 = entity;
         Objects.requireNonNull(entity2);
         Entity entity3 = entity2;
-        if (entity instanceof PlayerEntity) {
-            PlayerEntity playerEntity = (PlayerEntity)entity;
-            if (entity == ShaderModule.mc.player) {
-                return this.self.getValue();
+        switch (entity) {
+            case PlayerEntity playerEntity -> {
+                if (entity == ShaderModule.mc.player) {
+                    return this.self.getValue();
+                }
+                if (Alien.FRIEND.isFriend(playerEntity)) {
+                    return this.friends.getValue();
+                }
+                return this.players.getValue();
             }
-            if (Alien.FRIEND.isFriend(playerEntity)) {
-                return this.friends.getValue();
+            case EndCrystalEntity endCrystalEntity -> {
+                return this.crystals.getValue();
             }
-            return this.players.getValue();
-        }
-        if (entity instanceof EndCrystalEntity) {
-            return this.crystals.getValue();
-        }
-        if (entity instanceof ItemEntity) {
-            return this.items.getValue();
+            case ItemEntity itemEntity -> {
+                return this.items.getValue();
+            }
+            default -> {
+            }
         }
         return switch (entity.getType().getSpawnGroup()) {
             case SpawnGroup.CREATURE, SpawnGroup.WATER_CREATURE -> this.creatures.getValue();

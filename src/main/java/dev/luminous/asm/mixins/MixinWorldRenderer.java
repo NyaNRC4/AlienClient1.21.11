@@ -9,7 +9,9 @@ import dev.luminous.api.utils.render.ProjectionUtil;
 import dev.luminous.mod.modules.Module;
 import dev.luminous.mod.modules.impl.player.Freecam;
 import dev.luminous.mod.modules.impl.render.Chams;
+import dev.luminous.mod.modules.impl.render.ShaderModule;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gl.Framebuffer;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.client.render.WorldRenderer;
@@ -98,5 +100,9 @@ public abstract class MixinWorldRenderer {
     )
     private boolean freecamSpectator(boolean spectator) {
         return Freecam.INSTANCE != null && Freecam.INSTANCE.isOn() || spectator;
+    }
+
+    @Inject(method = "drawEntityOutlinesFramebuffer", at = @At("HEAD"), cancellable = true)
+    private void alien$shaderEntityOutline(CallbackInfo ci) {
     }
 }

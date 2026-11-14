@@ -1,56 +1,64 @@
 package dev.luminous.api.utils.render;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.GpuTextureView;
+import com.mojang.blaze3d.textures.GpuTexture;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gl.Framebuffer;
 import net.minecraft.client.gl.SimpleFramebuffer;
 import net.minecraft.client.render.command.OrderedRenderCommandQueue;
 import net.minecraft.client.render.state.CameraRenderState;
 import net.minecraft.client.util.math.MatrixStack;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class EntityRenderUtil {
+    private static final Logger LOGGER = LoggerFactory.getLogger("Alien/OffscreenEntityPass");
 
-    private static SimpleFramebuffer throughWallDepth;
+    private static SimpleFramebuffer throughWallTarget;
     private static boolean localPlayerOverlayRequested;
+    private static boolean errorLogged;
 
     private EntityRenderUtil() {
     }
 
+    public static OrderedRenderCommandQueue entityQueue() {
+        return EntityMaskRenderer.begin();
+    }
+
     public static void flushThroughWall() {
+        if (!EntityMaskRenderer.hasPending()) {
+            return;
+        }
+        if (!EntityMaskRenderer.hasCommands()) {
+            EntityMaskRenderer.discard();
+            return;
+        }
+
         MinecraftClient mc = MinecraftClient.getInstance();
-        int width = mc.getWindow().getFramebufferWidth();
-        int height = mc.getWindow().getFramebufferHeight();
+        Framebuffer main = mc.getFramebuffer();
+        if (main == null || main.getColorAttachment() == null || main.getColorAttachmentView() == null) {
+            EntityMaskRenderer.discard();
+            return;
+        }
+
+        int width = main.textureWidth;
+        int height = main.textureHeight;
         if (width <= 0 || height <= 0) {
-            return;
-        }
-        if (mc.gameRenderer.getEntityRenderCommandQueue().getBatchingQueues().values().stream()
-                .noneMatch(queue -> queue.hasCommands())) {
+            EntityMaskRenderer.discard();
             return;
         }
 
-        if (throughWallDepth == null
-                || throughWallDepth.textureWidth != width
-                || throughWallDepth.textureHeight != height) {
-            if (throughWallDepth != null) {
-                throughWallDepth.delete();
-            }
-            throughWallDepth = new SimpleFramebuffer("alien_entity_overlay_depth", width, height, true);
-        }
-
-        RenderSystem.getDevice()
-                .createCommandEncoder()
-                .clearDepthTexture(throughWallDepth.getDepthAttachment(), 1.0);
-
-        GpuTextureView previousDepthOverride = RenderSystem.outputDepthTextureOverride;
-        GpuTextureView previousColorOverride = RenderSystem.outputColorTextureOverride;
-        RenderSystem.outputColorTextureOverride = mc.getFramebuffer().getColorAttachmentView();
-        RenderSystem.outputDepthTextureOverride = throughWallDepth.getDepthAttachmentView();
         try {
-            mc.gameRenderer.getEntityRenderDispatcher().render();
-            mc.getBufferBuilders().getEntityVertexConsumers().draw();
-        } finally {
-            RenderSystem.outputColorTextureOverride = previousColorOverride;
-            RenderSystem.outputDepthTextureOverride = previousDepthOverride;
+            SimpleFramebuffer target = ensureTarget(width, height);
+            copyColor(main, target);
+            EntityMaskRenderer.end(target);
+            copyColor(target, main);
+        } catch (Throwable throwable) {
+            EntityMaskRenderer.discard();
+            if (!errorLogged) {
+                errorLogged = true;
+                LOGGER.error("Alien offscreen through-wall pass failed", throwable);
+            }
         }
     }
 
@@ -72,25 +80,46 @@ public final class EntityRenderUtil {
             return;
         }
 
-        OrderedRenderCommandQueue queue = mc.gameRenderer.getEntityRenderCommandQueue();
         CameraRenderState cameraState = mc.gameRenderer.getEntityRenderStates().cameraRenderState;
-        if (queue == null || cameraState == null) {
+        Framebuffer main = mc.getFramebuffer();
+        if (cameraState == null || main == null || main.getColorAttachmentView() == null) {
+            EntityMaskRenderer.discard();
             return;
         }
 
         float delta = mc.getRenderTickCounter().getTickProgress(!mc.world.getTickManager().shouldSkipTick(mc.player));
-        ModelPlayer.renderTexture(matrices, queue, cameraState, mc.player, delta, false);
-
-        GpuTextureView previousColorOverride = RenderSystem.outputColorTextureOverride;
-        GpuTextureView previousDepthOverride = RenderSystem.outputDepthTextureOverride;
-        RenderSystem.outputColorTextureOverride = mc.getFramebuffer().getColorAttachmentView();
-        RenderSystem.outputDepthTextureOverride = mc.getFramebuffer().getDepthAttachmentView();
         try {
-            mc.gameRenderer.getEntityRenderDispatcher().render();
-            mc.getBufferBuilders().getEntityVertexConsumers().draw();
+            ModelPlayer.renderTexture(matrices, EntityMaskRenderer.begin(), cameraState, mc.player, delta, false);
         } finally {
-            RenderSystem.outputColorTextureOverride = previousColorOverride;
-            RenderSystem.outputDepthTextureOverride = previousDepthOverride;
+            EntityMaskRenderer.flush(main);
         }
+    }
+
+    private static SimpleFramebuffer ensureTarget(int width, int height) {
+        if (throughWallTarget == null) {
+            throughWallTarget = new SimpleFramebuffer("alien_entity_overlay", width, height, true);
+        } else if (throughWallTarget.textureWidth != width || throughWallTarget.textureHeight != height) {
+            throughWallTarget.resize(width, height);
+        }
+        return throughWallTarget;
+    }
+
+    private static void copyColor(Framebuffer from, Framebuffer to) {
+        if (from == null || to == null) {
+            return;
+        }
+        GpuTexture source = from.getColorAttachment();
+        GpuTexture destination = to.getColorAttachment();
+        if (source == null || destination == null) {
+            return;
+        }
+        int width = Math.min(from.textureWidth, to.textureWidth);
+        int height = Math.min(from.textureHeight, to.textureHeight);
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+        RenderSystem.getDevice()
+                .createCommandEncoder()
+                .copyTextureToTexture(source, destination, 0, 0, 0, 0, 0, width, height);
     }
 }

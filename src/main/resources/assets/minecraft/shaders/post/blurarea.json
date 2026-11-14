@@ -1,22 +1,39 @@
 {
   "targets": [
-    "swap"
+    "blurH"
   ],
   "passes": [
     {
-      "name": "blurarea",
-      "intarget": "minecraft:main",
-      "outtarget": "swap",
+      "vertex_shader": "minecraft:post/screenquad",
+      "fragment_shader": "minecraft:post/blur",
+      "inputs": [
+        { "sampler": "Diffuse", "source": "main", "bilinear": true }
+      ],
+      "output": "target:blurH",
+      "block": "AlienBlur",
       "uniforms": [
-        { "name": "Radius", "values": [ 1.0 ] },
-        { "name": "BlurXY", "values": [ 0.0, 0.0 ] },
-        { "name": "BlurCoord", "values": [ 1.0, 1.0 ] }
+        { "name": "BlurXY", "type": "vec4", "value": [0.0, 0.0, 0.0, 0.0] },
+        { "name": "BlurCoord", "type": "vec4", "value": [1.0, 1.0, 0.0, 0.0] },
+        { "name": "InSize", "type": "vec4", "value": [1.0, 1.0, 0.0, 0.0] },
+        { "name": "Dir", "type": "vec4", "value": [1.0, 0.0, 0.0, 0.0] },
+        { "name": "Radius", "type": "float", "value": 20.0 }
       ]
     },
     {
-      "name": "blit",
-      "intarget": "swap",
-      "outtarget": "minecraft:main"
+      "vertex_shader": "minecraft:post/screenquad",
+      "fragment_shader": "minecraft:post/blur",
+      "inputs": [
+        { "sampler": "Diffuse", "source": "target:blurH", "bilinear": true }
+      ],
+      "output": "main",
+      "block": "AlienBlur",
+      "uniforms": [
+        { "name": "BlurXY", "type": "vec4", "value": [0.0, 0.0, 0.0, 0.0] },
+        { "name": "BlurCoord", "type": "vec4", "value": [1.0, 1.0, 0.0, 0.0] },
+        { "name": "InSize", "type": "vec4", "value": [1.0, 1.0, 0.0, 0.0] },
+        { "name": "Dir2", "type": "vec4", "value": [0.0, 1.0, 0.0, 0.0] },
+        { "name": "Radius", "type": "float", "value": 20.0 }
+      ]
     }
   ]
 }

@@ -1,202 +1,383 @@
 package dev.luminous.core.impl;
 
-import com.mojang.blaze3d.buffers.GpuBuffer;
-import com.mojang.blaze3d.buffers.Std140Builder;
-import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.platform.DepthTestFunction;
+import com.mojang.blaze3d.systems.ProjectionType;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuTextureView;
-import com.mojang.blaze3d.vertex.VertexFormat;
-import net.minecraft.client.render.VertexFormats;
 import dev.luminous.api.utils.Wrapper;
 import dev.luminous.api.utils.math.Timer;
+import dev.luminous.api.utils.render.EntityMaskRenderer;
+import dev.luminous.api.utils.render.ProjectionUtil;
 import dev.luminous.mod.modules.impl.render.ShaderModule;
 import java.awt.Color;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import net.minecraft.client.MinecraftClient;
-import com.mojang.blaze3d.textures.FilterMode;
 import net.minecraft.client.gl.Framebuffer;
-import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gl.SimpleFramebuffer;
-import net.minecraft.client.gl.UniformType;
+import net.minecraft.client.render.Camera;
+import net.minecraft.client.render.entity.state.EntityRenderState;
+import net.minecraft.client.render.state.CameraRenderState;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.entity.Entity;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
+import org.joml.Quaternionf;
+import satin.ManagedShaderEffect;
+import satin.PostEffect;
+import satin.ShaderEffectManager;
 
 public class ShaderManager
-implements Wrapper {
-    private static final int UBO_SIZE = 112;
-    private static final String[] SHADER_NAMES = new String[]{"solid", "pulse", "smoke", "gradient", "snow", "flow", "rainbow"};
-    private static final RenderPipeline[] PIPELINES = new RenderPipeline[Shader.values().length];
-    static final Timer timer = new Timer();
-    private static final List<RenderTask> tasks = new ArrayList<RenderTask>();
-    public float time = 0.0f;
-    private Framebuffer shaderBuffer;
+        implements Wrapper {
+    private static final String[] POST_EFFECTS = new String[]{"outline", "pulse", "smoke", "gradient", "snow", "flow", "rainbow"};
 
-    static {
-        for (Shader shader : Shader.values()) {
-            String name = SHADER_NAMES[shader.ordinal()];
-            RenderPipeline pipeline = RenderPipeline.builder().withLocation(Identifier.of("alienclient", "pipeline/" + name)).withVertexShader(Identifier.of("alienclient", "core/blit")).withFragmentShader(Identifier.of("alienclient", "core/" + name)).withSampler("InSampler").withUniform("AlienParams", UniformType.UNIFORM_BUFFER).withBlend(BlendFunction.ENTITY_OUTLINE_BLIT).withDepthWrite(false).withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST).withVertexFormat(VertexFormats.EMPTY, VertexFormat.DrawMode.TRIANGLES).build();
-            PIPELINES[shader.ordinal()] = RenderPipelines.register(pipeline);
-        }
-    }
+    static final Timer timer = new Timer();
+    private final Map<Shader, ManagedShaderEffect> effects = new EnumMap<Shader, ManagedShaderEffect>(Shader.class);
+    private final List<RenderTask> tasks = new ArrayList<RenderTask>();
+    public float time = 0.0f;
+    private Framebuffer sceneBuffer;
+    private boolean compositeErrorLogged;
 
     public void renderShader(Runnable runnable, Shader mode) {
-        tasks.add(new RenderTask(runnable, mode));
+        this.tasks.add(new RenderTask(runnable, mode));
     }
 
     public void renderShaders() {
-        tasks.forEach(t -> this.applyShader(t.task(), t.shader()));
-        tasks.clear();
+        if (this.tasks.isEmpty()) {
+            return;
+        }
+        for (RenderTask task : this.tasks) {
+            this.applyShader(task.task(), task.shader());
+        }
+        this.tasks.clear();
     }
 
     public void applyShader(Runnable runnable, Shader mode) {
         if (this.fullNullCheck()) {
             return;
         }
-        RenderSystem.assertOnRenderThread();
-        Framebuffer mcBuffer = MinecraftClient.getInstance().getFramebuffer();
-        if (this.shaderBuffer.textureWidth != mcBuffer.textureWidth || this.shaderBuffer.textureHeight != mcBuffer.textureHeight) {
-            this.shaderBuffer.resize(mcBuffer.textureWidth, mcBuffer.textureHeight);
+        MinecraftClient client = MinecraftClient.getInstance();
+        Framebuffer main = client.getFramebuffer();
+        if (main == null) {
+            return;
         }
+        if (this.sceneBuffer.textureWidth != main.textureWidth || this.sceneBuffer.textureHeight != main.textureHeight) {
+            this.sceneBuffer.resize(main.textureWidth, main.textureHeight);
+        }
+        this.clearSceneBuffer();
+
         GpuTextureView previousColor = RenderSystem.outputColorTextureOverride;
         GpuTextureView previousDepth = RenderSystem.outputDepthTextureOverride;
-        RenderSystem.outputColorTextureOverride = this.shaderBuffer.getColorAttachmentView();
-        RenderSystem.outputDepthTextureOverride = this.shaderBuffer.getDepthAttachmentView();
-        this.clearBuffer();
+        RenderSystem.outputColorTextureOverride = this.sceneBuffer.getColorAttachmentView();
+        RenderSystem.outputDepthTextureOverride = this.sceneBuffer.useDepthAttachment ? this.sceneBuffer.getDepthAttachmentView() : null;
         try {
             runnable.run();
         } finally {
             RenderSystem.outputColorTextureOverride = previousColor;
             RenderSystem.outputDepthTextureOverride = previousDepth;
         }
-        this.blitToScreen(mode, mcBuffer);
+
+        this.setupShader(mode, this.getShader(mode), this.sceneBuffer);
     }
 
-    private void clearBuffer() {
-        try (RenderPass pass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(() -> "alien_shader_clear", this.shaderBuffer.getColorAttachmentView(), OptionalInt.of(0), this.shaderBuffer.getDepthAttachmentView(), OptionalDouble.of(1.0))) {
-        }
+    public boolean overrideEntityOutline(Shader mode) {
+        ManagedShaderEffect effect = this.getShader(mode);
+        return effect != null && effect.getShaderEffect() != null;
     }
 
-    private void blitToScreen(Shader mode, Framebuffer target) {
-        GpuTextureView depthView = target.useDepthAttachment ? target.getDepthAttachmentView() : null;
-        try (RenderPass pass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(() -> "alien_shader_blit", target.getColorAttachmentView(), OptionalInt.empty(), depthView, OptionalDouble.empty()); GpuBuffer uniforms = this.buildUniforms(mode)) {
-            pass.setPipeline(PIPELINES[mode.ordinal()]);
-            pass.setUniform("AlienParams", uniforms);
-            pass.bindTexture("InSampler", this.shaderBuffer.getColorAttachmentView(), RenderSystem.getSamplerCache().get(FilterMode.LINEAR));
-            pass.draw(0, 3);
-        }
+    public void renderOutline(Shader mode, Framebuffer outlineBuffer) {
+        this.setupShader(mode, this.getShaderOutline(mode), outlineBuffer);
     }
 
-    private GpuBuffer buildUniforms(Shader shader) {
+    public void renderEntityShader(Shader mode) {
         ShaderModule module = ShaderModule.INSTANCE;
+        if (module == null || !module.isOn()) {
+            return;
+        }
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.world == null || client.player == null) {
+            return;
+        }
+        if (this.fullNullCheck()) {
+            return;
+        }
+        Framebuffer main = client.getFramebuffer();
+        if (main == null || this.sceneBuffer == null || this.sceneBuffer.getColorAttachmentView() == null) {
+            return;
+        }
+        if (this.sceneBuffer.textureWidth != main.textureWidth || this.sceneBuffer.textureHeight != main.textureHeight) {
+            this.sceneBuffer.resize(main.textureWidth, main.textureHeight);
+        }
+        if (!ProjectionUtil.isValid()) {
+            return;
+        }
+
+        float tick = client.getRenderTickCounter().getTickProgress(true);
+        Camera camera = client.gameRenderer.getCamera();
+        Vec3d cameraPos = camera.getCameraPos();
+
+        CameraRenderState cameraState = new CameraRenderState();
+        cameraState.initialized = true;
+        cameraState.pos = cameraPos;
+        cameraState.blockPos = camera.getBlockPos();
+        cameraState.entityPos = camera.getFocusedEntity() != null ? camera.getFocusedEntity().getEntityPos() : cameraPos;
+        cameraState.orientation = new Quaternionf(camera.getRotation());
+
+        MatrixStack matrices = new MatrixStack();
+        matrices.multiplyPositionMatrix(ProjectionUtil.positionMatrix());
+
+        this.clearSceneBuffer();
+        EntityMaskRenderer.begin();
+        RenderSystem.backupProjectionMatrix();
+        org.joml.Matrix4fStack modelViewStack = RenderSystem.getModelViewStack();
+        modelViewStack.pushMatrix();
+        modelViewStack.identity();
+        try {
+            RenderSystem.setProjectionMatrix(ProjectionUtil.projectionSlice(), ProjectionType.PERSPECTIVE);
+            for (Entity entity : client.world.getEntities()) {
+                if (entity == null || !module.shouldRender(entity)) {
+                    continue;
+                }
+                if (entity == client.player && client.options.getPerspective().isFirstPerson()) {
+                    continue;
+                }
+                matrices.push();
+                try {
+                    EntityRenderState state = client.getEntityRenderDispatcher().getAndUpdateRenderState(entity, tick);
+                    state.shadowRadius = 0.0f;
+                    if (state.shadowPieces != null) {
+                        state.shadowPieces.clear();
+                    }
+                    state.displayName = null;
+                    double dx = MathHelper.lerp(tick, entity.lastRenderX, entity.getX()) - cameraPos.x;
+                    double dy = MathHelper.lerp(tick, entity.lastRenderY, entity.getY()) - cameraPos.y;
+                    double dz = MathHelper.lerp(tick, entity.lastRenderZ, entity.getZ()) - cameraPos.z;
+                    client.getEntityRenderDispatcher().render(state, cameraState, dx, dy, dz, matrices, EntityMaskRenderer.queue());
+                } catch (Throwable ignored) {
+                } finally {
+                    matrices.pop();
+                }
+            }
+        } finally {
+            EntityMaskRenderer.end(this.sceneBuffer);
+            modelViewStack.popMatrix();
+            RenderSystem.restoreProjectionMatrix();
+        }
+
+        this.setupShader(mode, this.getShader(mode), this.sceneBuffer);
+    }
+
+    public void renderEntityShaderPass() {
+        ShaderModule module = ShaderModule.INSTANCE;
+        if (module == null || !module.isOn()) {
+            return;
+        }
+        this.renderEntityShader(module.mode.getValue());
+    }
+
+    private void clearSceneBuffer() {
+        GpuTextureView depth = this.sceneBuffer.useDepthAttachment ? this.sceneBuffer.getDepthAttachmentView() : null;
+        try (RenderPass pass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
+                () -> "alien_shader_scene_clear",
+                this.sceneBuffer.getColorAttachmentView(),
+                OptionalInt.of(0),
+                depth,
+                depth == null ? OptionalDouble.empty() : OptionalDouble.of(1.0))) {
+        }
+    }
+
+    public ManagedShaderEffect getShader(Shader mode) {
+        this.ensureManaged();
+        ManagedShaderEffect effect = this.effects.get(mode);
+        return effect != null ? effect : this.effects.get(Shader.Solid);
+    }
+
+    public ManagedShaderEffect getShaderOutline(Shader mode) {
+        return this.getShader(mode);
+    }
+
+    private void ensureManaged() {
+        if (this.effects.size() == Shader.values().length) {
+            return;
+        }
+        ShaderEffectManager manager = ShaderEffectManager.getInstance();
+        for (Shader shader : Shader.values()) {
+            if (this.effects.containsKey(shader)) {
+                continue;
+            }
+            Identifier id = Identifier.of("minecraft", "shaders/post/" + POST_EFFECTS[shader.ordinal()] + ".json");
+            this.effects.put(shader, manager.manage(id));
+        }
+    }
+
+    public boolean setupShader(Shader shader, ManagedShaderEffect effect, Framebuffer scene) {
+        if (effect == null) {
+            return false;
+        }
+        ShaderModule module = ShaderModule.INSTANCE;
+        if (module == null) {
+            return false;
+        }
         Color color = module.fill.getValue();
-        this.time = (float)timer.getMs() / 5.0f * module.speed.getValueFloat() * 0.004f;
-        int width = mc.getWindow().getScaledWidth();
-        int height = mc.getWindow().getScaledHeight();
-        float mixFactor = (float)color.getAlpha() / 255.0f;
-        float glowRadius = module.radius.getValueFloat();
-        float glowQuality = module.smoothness.getValueFloat();
-        float glowDivider = module.divider.getValueFloat();
-        float glowMaxSample = module.maxSample.getValueFloat();
-        Std140Builder builder = Std140Builder.intoBuffer(ByteBuffer.allocateDirect(UBO_SIZE));
+        this.time = (float) timer.getMs() / 5.0f * module.speed.getValueFloat() * 0.004f;
+
+        float width = (float) mc.getWindow().getScaledWidth();
+        float height = (float) mc.getWindow().getScaledHeight();
+        float radius = module.radius.getValueFloat();
+        float quality = module.smoothness.getValueFloat();
+        float divider = module.divider.getValueFloat();
+        float maxSample = module.maxSample.getValueFloat();
+        float alpha = (float) color.getAlpha() / 255.0f;
+
+        effect.setScene(scene);
+
         switch (shader) {
-            case Solid: {
-                this.putColor(builder, color, 0.0f);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4((float)width, (float)height, 0.0f, mixFactor);
-                builder.putVec4(glowRadius, glowQuality, glowDivider, glowMaxSample);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4(module.alpha.getValueFloat() / 255.0f, 0.0f, 0.0f, 0.0f);
-                break;
-            }
-            case Pulse: {
-                this.putColor(builder, color, 0.0f);
-                this.putColor(builder, module.pulse.getValue(), 0.0f);
-                builder.putVec4((float)width, (float)height, this.time, mixFactor);
-                builder.putVec4(glowRadius, glowQuality, glowDivider, glowMaxSample);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4(module.alpha.getValueFloat() / 255.0f, module.pulseSpeed.getValueFloat(), 0.0f, 0.0f);
-                break;
-            }
-            case Smoke: {
-                this.putColor(builder, module.smoke1.getValue(), mixFactor);
-                this.putColor(builder, module.smoke2.getValue(), 0.0f);
-                builder.putVec4((float)width, (float)height, this.time, 0.0f);
-                builder.putVec4(glowRadius, glowQuality, glowDivider, glowMaxSample);
-                this.putColor(builder, module.smoke3.getValue(), (float)module.octaves.getValue());
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
+            case Rainbow: {
+                effect.setUniformValue("alpha2", alpha);
+                this.putGlow(effect, radius, quality, divider, maxSample);
+                effect.setUniformValue("resolution", width, height, 0.0f, 0.0f);
+                effect.setUniformValue("time", this.time);
                 break;
             }
             case Gradient: {
-                this.putColor(builder, module.smoke1.getValue(), mixFactor);
-                this.putColor(builder, module.smoke2.getValue(), 0.0f);
-                builder.putVec4((float)width, (float)height, this.time * 30.0f, 0.0f);
-                builder.putVec4(glowRadius, glowQuality, glowDivider, glowMaxSample);
-                this.putColor(builder, module.smoke3.getValue(), (float)module.octaves.getValue());
-                this.putColor(builder, module.smoke4.getValue(), 0.0f);
-                builder.putVec4(module.step.getValueFloat(), 1.0f, 0.0f, 0.0f);
+                effect.setUniformValue("alpha2", alpha);
+                this.putColor(effect, "rgb", module.smoke1.getValue());
+                this.putColor(effect, "rgb1", module.smoke2.getValue());
+                this.putColor(effect, "rgb2", module.smoke3.getValue());
+                this.putColor(effect, "rgb3", module.smoke4.getValue());
+                effect.setUniformValue("stepSize", module.step.getValueFloat() * 300.0f);
+                this.putGlow(effect, radius, quality, divider, maxSample);
+                effect.setUniformValue("resolution", width, height, 0.0f, 0.0f);
+                effect.setUniformValue("time", this.time * 300.0f);
+                break;
+            }
+            case Smoke: {
+                effect.setUniformValue("alpha1", alpha);
+                this.putGlow(effect, radius, quality, divider, maxSample);
+                Color first = module.smoke1.getValue();
+                effect.setUniformValue(
+                        "first",
+                        (float) first.getRed() / 255.0f,
+                        (float) first.getGreen() / 255.0f,
+                        (float) first.getBlue() / 255.0f,
+                        (float) first.getAlpha() / 255.0f);
+                this.putColor(effect, "second", module.smoke2.getValue());
+                this.putColor(effect, "third", module.smoke3.getValue());
+                effect.setUniformValue("oct", module.octaves.getValueInt());
+                effect.setUniformValue("resolution", width, height, 0.0f, 0.0f);
+                effect.setUniformValue("time", this.time);
+                break;
+            }
+            case Solid: {
+                effect.setUniformValue("mixFactor", alpha);
+                effect.setUniformValue("minAlpha", module.alpha.getValueFloat() / 255.0f);
+                this.putGlow(effect, radius, quality, divider, maxSample);
+                this.putColor(effect, "color", color);
+                effect.setUniformValue("resolution", width, height, 0.0f, 0.0f);
+                break;
+            }
+            case Pulse: {
+                effect.setUniformValue("mixFactor", alpha);
+                effect.setUniformValue("minAlpha", module.alpha.getValueFloat() / 255.0f);
+                this.putGlow(effect, radius, quality, divider, maxSample);
+                this.putColor(effect, "color", color);
+                this.putColor(effect, "color2", module.pulse.getValue());
+                effect.setUniformValue("time", this.time);
+                effect.setUniformValue("size", module.pulseSpeed.getValueFloat());
+                effect.setUniformValue("resolution", width, height, 0.0f, 0.0f);
                 break;
             }
             case Snow: {
-                this.putColor(builder, color, mixFactor);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4((float)width, (float)height, this.time, 0.0f);
-                builder.putVec4(glowRadius, glowQuality, glowDivider, glowMaxSample);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
+                effect.setUniformValue(
+                        "color",
+                        (float) color.getRed() / 255.0f,
+                        (float) color.getGreen() / 255.0f,
+                        (float) color.getBlue() / 255.0f,
+                        alpha);
+                this.putGlow(effect, radius, quality, divider, maxSample);
+                effect.setUniformValue("resolution", width, height, 0.0f, 0.0f);
+                effect.setUniformValue("time", this.time);
                 break;
             }
             case Flow: {
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4((float)width, (float)height, this.time, mixFactor);
-                builder.putVec4(glowRadius, glowQuality, glowDivider, glowMaxSample);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
+                effect.setUniformValue("mixFactor", alpha);
+                this.putGlow(effect, radius, quality, divider, maxSample);
+                effect.setUniformValue("resolution", width, height, 0.0f, 0.0f);
+                effect.setUniformValue("time", this.time);
                 break;
             }
-            default: {
-                builder.putVec4(0.0f, 0.0f, 0.0f, mixFactor);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4((float)width, (float)height, this.time, 0.0f);
-                builder.putVec4(glowRadius, glowQuality, glowDivider, glowMaxSample);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-            }
         }
-        ByteBuffer data = builder.get();
-        return RenderSystem.getDevice().createBuffer(() -> "alien_shader_uniforms", GpuBuffer.USAGE_UNIFORM, data);
+
+        effect.render(mc.getRenderTickCounter().getTickProgress(true));
+        this.composite(effect, "swap");
+        return true;
     }
 
-    private void putColor(Std140Builder builder, Color color, float w) {
-        builder.putVec4((float)color.getRed() / 255.0f, (float)color.getGreen() / 255.0f, (float)color.getBlue() / 255.0f, w);
+    private void composite(ManagedShaderEffect effect, String targetName) {
+        if (effect == null) {
+            return;
+        }
+        MinecraftClient client = MinecraftClient.getInstance();
+        Framebuffer main = client.getFramebuffer();
+        if (main == null) {
+            return;
+        }
+        PostEffect postEffect = effect.getShaderEffect();
+        if (postEffect == null) {
+            return;
+        }
+        Framebuffer output = postEffect.getFramebuffer(targetName);
+        if (output == null || output.getColorAttachmentView() == null) {
+            return;
+        }
+        try {
+            output.drawBlit(main.getColorAttachmentView());
+        } catch (Throwable throwable) {
+            if (!this.compositeErrorLogged) {
+                this.compositeErrorLogged = true;
+                System.err.println("[Alien/Shader] composite failed: " + throwable);
+            }
+        }
+    }
+
+    private void putGlow(ManagedShaderEffect effect, float radius, float quality, float divider, float maxSample) {
+        effect.setUniformValue("radius", radius);
+        effect.setUniformValue("quality", quality);
+        effect.setUniformValue("divider", divider);
+        effect.setUniformValue("maxSample", maxSample);
+    }
+
+    private void putColor(ManagedShaderEffect effect, String name, Color color) {
+        effect.setUniformValue(
+                name,
+                (float) color.getRed() / 255.0f,
+                (float) color.getGreen() / 255.0f,
+                (float) color.getBlue() / 255.0f,
+                1.0f);
     }
 
     public void reloadShaders() {
-        this.shaderBuffer = null;
+        this.ensureManaged();
     }
 
     public boolean fullNullCheck() {
-        if (this.shaderBuffer != null) {
-            return false;
-        }
-        if (mc.getFramebuffer() == null) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        Framebuffer main = client.getFramebuffer();
+        if (main == null) {
             return true;
         }
-        RenderSystem.assertOnRenderThread();
-        this.shaderBuffer = new SimpleFramebuffer("alien_shader", mc.getFramebuffer().textureWidth, mc.getFramebuffer().textureHeight, true);
-        return true;
+        if (this.sceneBuffer == null) {
+            RenderSystem.assertOnRenderThread();
+            this.sceneBuffer = new SimpleFramebuffer("alien_shader_scene", main.textureWidth, main.textureHeight, true);
+            this.ensureManaged();
+            return true;
+        }
+        return false;
     }
 
     public record RenderTask(Runnable task, Shader shader) {
@@ -210,6 +391,5 @@ implements Wrapper {
         Snow,
         Flow,
         Rainbow;
-
     }
 }

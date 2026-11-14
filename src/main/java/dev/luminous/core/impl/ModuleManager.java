@@ -258,6 +258,9 @@ public class ModuleManager implements Wrapper {
             }
         }
         EntityRenderUtil.flushThroughWall();
+        if (Alien.SHADER != null) {
+            Alien.SHADER.renderEntityShaderPass();
+        }
 
         block5: {
             for (Module module : this.modules) {

@@ -20,12 +20,20 @@ public class MixinEnvironmentAttributeInterpolator {
         if (ambience == null || !ambience.isOn()) return;
 
         Color awtColor = null;
-        if (environmentAttribute == EnvironmentAttributes.SKY_COLOR_VISUAL && ambience.sky.booleanValue) {
-            awtColor = ambience.sky.getValue();
+        if (environmentAttribute == EnvironmentAttributes.FOG_COLOR_VISUAL) {
+            if (ambience.fog.booleanValue) {
+                awtColor = ambience.fog.getValue();
+            } else if (ambience.dimensionColor.booleanValue) {
+                awtColor = ambience.dimensionColor.getValue();
+            }
+        } else if (environmentAttribute == EnvironmentAttributes.SKY_COLOR_VISUAL) {
+            if (ambience.sky.booleanValue) {
+                awtColor = ambience.sky.getValue();
+            } else if (ambience.dimensionColor.booleanValue) {
+                awtColor = ambience.dimensionColor.getValue();
+            }
         } else if (environmentAttribute == EnvironmentAttributes.CLOUD_COLOR_VISUAL && ambience.cloud.booleanValue) {
             awtColor = ambience.cloud.getValue();
-        } else if (environmentAttribute == EnvironmentAttributes.FOG_COLOR_VISUAL && ambience.fog.booleanValue) {
-            awtColor = ambience.fog.getValue();
         } else if (environmentAttribute == EnvironmentAttributes.SKY_LIGHT_COLOR_VISUAL && ambience.worldColor.booleanValue) {
             awtColor = ambience.worldColor.getValue();
         }
